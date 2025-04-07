@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 
 def elevator_manual_upload_path(instance, filename):
     # Filen vil lastes opp til MEDIA_ROOT/elevator_manuals/elevator_id_filename
@@ -204,3 +205,105 @@ class Report(models.Model):
     
     def __str__(self):
         return f"Report for {self.assignment.title} by {self.created_by.username}"
+
+class Service(models.Model):
+    elevator = models.ForeignKey(Elevator, on_delete=models.CASCADE, related_name='services')
+    service_date = models.DateField()
+    description = models.TextField()
+    completed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Service på {self.elevator} - {self.service_date}"
+
+class SalesOpportunity(models.Model):
+    """ Representerer en salgsmulighet eller et lead."""
+    STATUS_CHOICES = (
+        ('new', 'Ny'),
+        ('contacted', 'Kontaktet'),
+        ('proposal', 'Tilbud Sendt'),
+        ('negotiation', 'Forhandling'),
+        ('won', 'Vunnet'),
+        ('lost', 'Tapt'),
+    )
+
+    name = models.CharField(max_length=255, verbose_name="Navn/Beskrivelse")
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='opportunities', verbose_name="Kunde")
+    description = models.TextField(blank=True, null=True, verbose_name="Detaljert beskrivelse")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', verbose_name="Status")
+    estimated_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Estimert verdi")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Opprettet")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Sist oppdatert")
+    # Man kan legge til flere felter her, f.eks. kobling til ansvarlig selger (User)
+
+    class Meta:
+        verbose_name = "Salgsmulighet"
+        verbose_name_plural = "Salgsmuligheter"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.customer.name}) - {self.get_status_display()}"
+
+class Quote(models.Model):
+    """ Representerer et tilbud sendt til en kunde. """
+    STATUS_CHOICES = (
+        ('draft', 'Utkast'),
+        ('sent', 'Sendt'),
+        ('accepted', 'Akseptert'),
+        ('rejected', 'Avslått'),
+    )
+
+    opportunity = models.ForeignKey(SalesOpportunity, on_delete=models.CASCADE, related_name='quotes', verbose_name="Tilhørende Salgsmulighet")
+    quote_number = models.CharField(max_length=50, unique=True, blank=True, verbose_name="Tilbudsnummer") # Kan genereres automatisk
+    issue_date = models.DateField(default=timezone.now, verbose_name="Utstedelsesdato")
+    expiry_date = models.DateField(null=True, blank=True, verbose_name="Gyldig til dato")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Status")
+    notes = models.TextField(blank=True, null=True, verbose_name="Interne notater")
+    customer_notes = models.TextField(blank=True, null=True, verbose_name="Notater til kunde")
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Totalsum")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # TODO: Implement logic for generating quote_number (e.g., in save method)
+    # TODO: Implement logic to auto-update total_amount based on line items
+
+    class Meta:
+        verbose_name = "Tilbud"
+        verbose_name_plural = "Tilbud"
+        ordering = ['-issue_date']
+
+    def __str__(self):
+        return f"Tilbud {self.quote_number or self.id} til {self.opportunity.customer.name}"
+
+    # Eksempel på save-metode for å generere nummer (må tilpasses)
+    # def save(self, *args, **kwargs):
+    #     if not self.quote_number:
+    #         # Logikk for å finne neste nummer, f.eks. basert på år og sekvens
+    #         last_quote = Quote.objects.order_by('id').last()
+    #         next_id = (last_quote.id + 1) if last_quote else 1
+    #         self.quote_number = f"QT-{timezone.now().year}-{next_id:04d}"
+    #     super().save(*args, **kwargs)
+
+class QuoteLineItem(models.Model):
+    """ Representerer en linje i et tilbud. """
+    quote = models.ForeignKey(Quote, on_delete=models.CASCADE, related_name='line_items', verbose_name="Tilbud")
+    # Kan linke til Elevator/Part her, eller bare bruke beskrivelse
+    # product = models.ForeignKey(Elevator, null=True, blank=True, on_delete=models.SET_NULL)
+    description = models.CharField(max_length=255, verbose_name="Beskrivelse/Produkt")
+    quantity = models.PositiveIntegerField(default=1, verbose_name="Antall")
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Enhetspris")
+    line_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Linjesum")
+
+    def save(self, *args, **kwargs):
+        # Beregn linjesum automatisk
+        self.line_total = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+        # TODO: Trigger oppdatering av Quote.total_amount etter lagring
+
+    def __str__(self):
+        return f"{self.quantity} x {self.description} for Quote {self.quote.id}"
+
+    class Meta:
+        verbose_name = "Tilbudslinje"
+        verbose_name_plural = "Tilbudslinjer"
+
+# Register your models here.

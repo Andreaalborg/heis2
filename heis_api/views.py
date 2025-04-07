@@ -3,13 +3,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
 from django.db.models import Q
-from .models import User, Customer, ElevatorType, Elevator, Assignment, AssignmentNote, Part, AssignmentPart, AssignmentChecklist, Report
+from .models import User, Customer, ElevatorType, Elevator, Assignment, AssignmentNote, Part, AssignmentPart, AssignmentChecklist, Report, SalesOpportunity
 from .serializers import (
     UserSerializer, CustomerSerializer, CustomerDetailSerializer,
     ElevatorTypeSerializer, ElevatorSerializer, ElevatorDetailSerializer,
     PartSerializer, AssignmentPartSerializer, AssignmentNoteSerializer,
     AssignmentSerializer, AssignmentDetailSerializer, AssignmentChecklistSerializer,
-    ReportSerializer
+    ReportSerializer, SalesOpportunitySerializer
 )
 import os
 from django.conf import settings
@@ -292,3 +292,16 @@ class ReportViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+class SalesOpportunityViewSet(viewsets.ModelViewSet):
+    """ API endpoint som tillater salgsmuligheter å bli sett eller redigert."""
+    queryset = SalesOpportunity.objects.all().order_by('-created_at')
+    serializer_class = SalesOpportunitySerializer
+    permission_classes = [permissions.IsAuthenticated] # Juster tilgang, f.eks. kun for admin/selgere?
+
+    # Her kan man legge til filtrering, f.eks. basert på status eller selger
+    # filter_backends = [DjangoFilterBackend]
+    # filterset_fields = ['status', 'customer']
+
+
+# Setup the router in urls.py

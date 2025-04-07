@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import User, Customer, ElevatorType, Elevator, Assignment, AssignmentNote, Part, AssignmentPart, AssignmentChecklist, Report
+from .models import User, Customer, ElevatorType, Elevator, Assignment, AssignmentNote, Part, AssignmentPart, AssignmentChecklist, Report, Service, SalesOpportunity
 
 User = get_user_model()
 
@@ -206,3 +206,21 @@ class AssignmentDetailSerializer(AssignmentSerializer):
         fields = AssignmentSerializer.Meta.fields + ['notes', 'parts_used']
         # Eksempel på dypere nesting hvis ønskelig:
         # depth = 1
+
+class ServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = '__all__'
+
+class SalesOpportunitySerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source='customer.name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = SalesOpportunity
+        fields = (
+            'id', 'name', 'customer', 'customer_name', 'description',
+            'status', 'status_display', 'estimated_value',
+            'created_at', 'updated_at'
+        )
+        read_only_fields = ('created_at', 'updated_at', 'customer_name', 'status_display')
