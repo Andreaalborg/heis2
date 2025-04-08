@@ -61,6 +61,7 @@ class Customer(models.Model):
 class ElevatorType(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Standard Pris")
     
     def __str__(self):
         return self.name
@@ -80,6 +81,143 @@ class Elevator(models.Model):
     
     def __str__(self):
         return f"{self.serial_number} - {self.customer.name}"
+
+class SalesOpportunity(models.Model):
+    """ Representerer en salgsmulighet eller et lead."""
+    STATUS_CHOICES = (
+        ('new', 'Ny'),
+        ('contacted', 'Kontaktet'),
+        ('proposal', 'Tilbud Sendt'),
+        ('negotiation', 'Forhandling'),
+        ('won', 'Vunnet'),
+        ('lost', 'Tapt'),
+    )
+
+    name = models.CharField(max_length=255, verbose_name="Navn/Beskrivelse")
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='opportunities', verbose_name="Kunde")
+    description = models.TextField(blank=True, null=True, verbose_name="Detaljert beskrivelse")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', verbose_name="Status")
+    estimated_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Estimert verdi")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Opprettet")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Sist oppdatert")
+    # Man kan legge til flere felter her, f.eks. kobling til ansvarlig selger (User)
+
+    class Meta:
+        verbose_name = "Salgsmulighet"
+        verbose_name_plural = "Salgsmuligheter"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.customer.name}) - {self.get_status_display()}"
+
+class Quote(models.Model):
+    """ Representerer et tilbud sendt til en kunde. """
+    STATUS_CHOICES = (
+        ('draft', 'Utkast'),
+        ('sent', 'Sendt'),
+        ('accepted', 'Akseptert'),
+        ('rejected', 'Avslått'),
+    )
+
+    opportunity = models.ForeignKey(SalesOpportunity, on_delete=models.CASCADE, related_name='quotes', verbose_name="Tilhørende Salgsmulighet")
+    quote_number = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Tilbudsnummer")
+    issue_date = models.DateField(default=timezone.localdate, verbose_name="Utstedelsesdato")
+    expiry_date = models.DateField(null=True, blank=True, verbose_name="Gyldig til dato")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Status")
+    notes = models.TextField(blank=True, null=True, verbose_name="Interne notater")
+    customer_notes = models.TextField(blank=True, null=True, verbose_name="Notater til kunde")
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Totalsum")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # TODO: Implement logic for generating quote_number (e.g., in save method)
+    # TODO: Implement logic to auto-update total_amount based on line items
+
+    class Meta:
+        verbose_name = "Tilbud"
+        verbose_name_plural = "Tilbud"
+        ordering = ['-issue_date']
+
+    def __str__(self):
+        return f"Tilbud {self.quote_number or self.id} til {self.opportunity.customer.name}"
+
+    # Eksempel på save-metode for å generere nummer (må tilpasses)
+    # def save(self, *args, **kwargs):
+    #     if not self.quote_number:
+    #         # Logikk for å finne neste nummer, f.eks. basert på år og sekvens
+    #         last_quote = Quote.objects.order_by('id').last()
+    #         next_id = (last_quote.id + 1) if last_quote else 1
+    #         self.quote_number = f"QT-{timezone.now().year}-{next_id:04d}"
+    #     super().save(*args, **kwargs)
+
+class QuoteLineItem(models.Model):
+    """ Representerer en linje i et tilbud. """
+    quote = models.ForeignKey(Quote, on_delete=models.CASCADE, related_name='line_items', verbose_name="Tilbud")
+    # Erstatter beskrivelse/pris med kobling til ElevatorType
+    elevator_type = models.ForeignKey(ElevatorType, on_delete=models.SET_NULL, null=True, verbose_name="Heistype") 
+    quantity = models.PositiveIntegerField(default=1, verbose_name="Antall")
+    # Fjerner unit_price og description, hentes fra elevator_type
+    # Fjerner line_total, beregnes dynamisk
+
+    # Fjerner save-metoden som beregnet linjetotal basert på unit_price
+    # def save(self, *args, **kwargs): ...
+
+    def __str__(self):
+        type_name = self.elevator_type.name if self.elevator_type else "Ukjent Type"
+        return f"{self.quantity} x {type_name} for Quote {self.quote.id}"
+
+    class Meta:
+        verbose_name = "Tilbudslinje"
+        verbose_name_plural = "Tilbudslinjer"
+
+class Order(models.Model):
+    """ Representerer en bekreftet ordre, ofte basert på et akseptert tilbud. """
+    STATUS_CHOICES = (
+        ('pending', 'Avventer Behandling'), 
+        ('processing', 'Under Behandling'), 
+        ('shipped', 'Sendt/Levert'), 
+        ('invoiced', 'Fakturert'),
+        ('completed', 'Fullført'),
+        ('cancelled', 'Kansellert'),
+    )
+
+    quote = models.OneToOneField(Quote, on_delete=models.SET_NULL, null=True, blank=True, related_name='order', verbose_name="Basert på Tilbud")
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='orders', verbose_name="Kunde") # Hentes fra quote/opportunity
+    order_date = models.DateField(default=timezone.localdate, verbose_name="Ordredato")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Ordrestatus")
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Totalsum") # Kopieres fra quote
+    notes = models.TextField(blank=True, null=True, verbose_name="Interne Ordrenotater")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Ordre"
+        verbose_name_plural = "Ordrer"
+        ordering = ['-order_date']
+
+    def __str__(self):
+        return f"Ordre {self.id} for {self.customer.name}"
+
+class OrderLineItem(models.Model):
+    """ Representerer en linje i en ordre, kopiert fra tilbudslinje. """
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='line_items', verbose_name="Ordre")
+    elevator_type = models.ForeignKey(ElevatorType, on_delete=models.SET_NULL, null=True, verbose_name="Heistype") 
+    quantity = models.PositiveIntegerField(default=1, verbose_name="Antall")
+    unit_price_at_order = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Enhetspris ved bestilling")
+    line_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Linjesum")
+
+    def save(self, *args, **kwargs):
+        self.line_total = self.quantity * self.unit_price_at_order
+        super().save(*args, **kwargs)
+        # TODO: Oppdatere Order.total_amount etter lagring/sletting
+
+    def __str__(self):
+        type_name = self.elevator_type.name if self.elevator_type else "Ukjent Type"
+        return f"{self.quantity} x {type_name} for Order {self.order.id}"
+
+    class Meta:
+        verbose_name = "Ordrelinje"
+        verbose_name_plural = "Ordrelinjer"
 
 class Assignment(models.Model):
     STATUS_CHOICES = (
@@ -105,6 +243,7 @@ class Assignment(models.Model):
     
     title = models.CharField(max_length=200)
     description = models.TextField()
+    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name='assignments', verbose_name="Tilhørende Ordre")
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='assignments')
     elevator = models.ForeignKey(Elevator, on_delete=models.SET_NULL, null=True, blank=True, related_name='assignments')
     assigned_to = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='assignments')
@@ -215,95 +354,40 @@ class Service(models.Model):
     def __str__(self):
         return f"Service på {self.elevator} - {self.service_date}"
 
-class SalesOpportunity(models.Model):
-    """ Representerer en salgsmulighet eller et lead."""
-    STATUS_CHOICES = (
-        ('new', 'Ny'),
-        ('contacted', 'Kontaktet'),
-        ('proposal', 'Tilbud Sendt'),
-        ('negotiation', 'Forhandling'),
-        ('won', 'Vunnet'),
-        ('lost', 'Tapt'),
+# Ny modell for fravær
+class Absence(models.Model):
+    """ Representerer en periode med fravær for en ansatt. """
+    ABSENCE_TYPE_CHOICES = (
+        ('sick_leave', 'Sykemelding'),
+        ('vacation', 'Ferie'),
+        ('leave_of_absence', 'Permisjon'),
+        ('public_holiday', 'Helligdag'), # Kan evt. legges inn sentralt
+        ('other', 'Annet'),
     )
 
-    name = models.CharField(max_length=255, verbose_name="Navn/Beskrivelse")
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='opportunities', verbose_name="Kunde")
-    description = models.TextField(blank=True, null=True, verbose_name="Detaljert beskrivelse")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', verbose_name="Status")
-    estimated_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Estimert verdi")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Opprettet")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Sist oppdatert")
-    # Man kan legge til flere felter her, f.eks. kobling til ansvarlig selger (User)
-
-    class Meta:
-        verbose_name = "Salgsmulighet"
-        verbose_name_plural = "Salgsmuligheter"
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.name} ({self.customer.name}) - {self.get_status_display()}"
-
-class Quote(models.Model):
-    """ Representerer et tilbud sendt til en kunde. """
-    STATUS_CHOICES = (
-        ('draft', 'Utkast'),
-        ('sent', 'Sendt'),
-        ('accepted', 'Akseptert'),
-        ('rejected', 'Avslått'),
-    )
-
-    opportunity = models.ForeignKey(SalesOpportunity, on_delete=models.CASCADE, related_name='quotes', verbose_name="Tilhørende Salgsmulighet")
-    quote_number = models.CharField(max_length=50, unique=True, blank=True, verbose_name="Tilbudsnummer") # Kan genereres automatisk
-    issue_date = models.DateField(default=timezone.now, verbose_name="Utstedelsesdato")
-    expiry_date = models.DateField(null=True, blank=True, verbose_name="Gyldig til dato")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Status")
-    notes = models.TextField(blank=True, null=True, verbose_name="Interne notater")
-    customer_notes = models.TextField(blank=True, null=True, verbose_name="Notater til kunde")
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Totalsum")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='absences', verbose_name="Ansatt")
+    start_date = models.DateField(verbose_name="Startdato")
+    end_date = models.DateField(verbose_name="Sluttdato (inkl.)") # Inkluderer denne dagen
+    absence_type = models.CharField(max_length=20, choices=ABSENCE_TYPE_CHOICES, verbose_name="Type fravær")
+    description = models.TextField(blank=True, null=True, verbose_name="Beskrivelse/Kommentar")
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    # TODO: Implement logic for generating quote_number (e.g., in save method)
-    # TODO: Implement logic to auto-update total_amount based on line items
+    # Kan legge til felt for hvem som registrerte fraværet
+    # registered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='registered_absences')
 
     class Meta:
-        verbose_name = "Tilbud"
-        verbose_name_plural = "Tilbud"
-        ordering = ['-issue_date']
+        verbose_name = "Fravær"
+        verbose_name_plural = "Fravær"
+        ordering = ['-start_date']
+        # Sikrer at en bruker ikke har overlappende fravær (kan justeres/fjernes)
+        # constraints = [
+        #     models.CheckConstraint(
+        #         check=models.Q(end_date__gte=models.F('start_date')),
+        #         name='end_date_gte_start_date'
+        #     ),
+        #     # Mer kompleks sjekk for overlapp trengs hvis det er kritisk
+        # ]
 
     def __str__(self):
-        return f"Tilbud {self.quote_number or self.id} til {self.opportunity.customer.name}"
-
-    # Eksempel på save-metode for å generere nummer (må tilpasses)
-    # def save(self, *args, **kwargs):
-    #     if not self.quote_number:
-    #         # Logikk for å finne neste nummer, f.eks. basert på år og sekvens
-    #         last_quote = Quote.objects.order_by('id').last()
-    #         next_id = (last_quote.id + 1) if last_quote else 1
-    #         self.quote_number = f"QT-{timezone.now().year}-{next_id:04d}"
-    #     super().save(*args, **kwargs)
-
-class QuoteLineItem(models.Model):
-    """ Representerer en linje i et tilbud. """
-    quote = models.ForeignKey(Quote, on_delete=models.CASCADE, related_name='line_items', verbose_name="Tilbud")
-    # Kan linke til Elevator/Part her, eller bare bruke beskrivelse
-    # product = models.ForeignKey(Elevator, null=True, blank=True, on_delete=models.SET_NULL)
-    description = models.CharField(max_length=255, verbose_name="Beskrivelse/Produkt")
-    quantity = models.PositiveIntegerField(default=1, verbose_name="Antall")
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Enhetspris")
-    line_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Linjesum")
-
-    def save(self, *args, **kwargs):
-        # Beregn linjesum automatisk
-        self.line_total = self.quantity * self.unit_price
-        super().save(*args, **kwargs)
-        # TODO: Trigger oppdatering av Quote.total_amount etter lagring
-
-    def __str__(self):
-        return f"{self.quantity} x {self.description} for Quote {self.quote.id}"
-
-    class Meta:
-        verbose_name = "Tilbudslinje"
-        verbose_name_plural = "Tilbudslinjer"
+        return f"{self.user.username} - {self.get_absence_type_display()} ({self.start_date} - {self.end_date})"
 
 # Register your models here.

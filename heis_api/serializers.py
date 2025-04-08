@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import User, Customer, ElevatorType, Elevator, Assignment, AssignmentNote, Part, AssignmentPart, AssignmentChecklist, Report, Service, SalesOpportunity
+from .models import User, Customer, ElevatorType, Elevator, Assignment, AssignmentNote, Part, AssignmentPart, AssignmentChecklist, Report, Service, SalesOpportunity, QuoteLineItem, Quote, OrderLineItem, Order, Absence
 
 User = get_user_model()
 
@@ -43,7 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ElevatorTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ElevatorType
-        fields = '__all__'
+        fields = ('id', 'name', 'description', 'price')
 
 class ElevatorSerializer(serializers.ModelSerializer):
     customer_name = serializers.SerializerMethodField()
@@ -116,32 +116,25 @@ class AssignmentPartSerializer(serializers.ModelSerializer):
         fields = ['id', 'assignment', 'part', 'part_name', 'part_price', 'quantity']
 
 class AssignmentSerializer(serializers.ModelSerializer):
-    customer_name = serializers.SerializerMethodField()
-    assigned_to_name = serializers.SerializerMethodField()
-    elevator_serial = serializers.SerializerMethodField()
-    
+    customer_name = serializers.CharField(source='customer.name', read_only=True)
+    elevator_serial = serializers.CharField(source='elevator.serial_number', read_only=True, allow_null=True)
+    assigned_to_name = serializers.CharField(source='assigned_to.get_full_name', read_only=True, allow_null=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    type_display = serializers.CharField(source='get_assignment_type_display', read_only=True)
+    # Inkluderer relatert ordre-ID
+    order_id = serializers.IntegerField(source='order.id', read_only=True, allow_null=True)
+
     class Meta:
         model = Assignment
-        fields = [
-            'id', 'title', 'description', 'customer', 'customer_name', 
-            'elevator', 'elevator_serial', 'assigned_to', 'assigned_to_name', 
-            'assignment_type', 'status', 'scheduled_date', 'deadline_date', 
-            'created_at', 'updated_at', 'completed_at',
-            'procedure_step', 'checklist_status', 'procedure_notes' 
-        ]
-        # Vurder read_only for noen felt om nødvendig
-        # read_only_fields = ['created_at', 'updated_at']
-
-    def get_customer_name(self, obj):
-        return obj.customer.name if obj.customer else None
-    
-    def get_assigned_to_name(self, obj):
-        if obj.assigned_to:
-            return f"{obj.assigned_to.first_name} {obj.assigned_to.last_name}".strip() or obj.assigned_to.username
-        return "Ikke tildelt"
-
-    def get_elevator_serial(self, obj):
-        return obj.elevator.serial_number if obj.elevator else None
+        fields = (
+            'id', 'title', 'customer', 'customer_name', 'elevator', 'elevator_serial',
+            'assigned_to', 'assigned_to_name', 'status', 'status_display', 
+            'scheduled_date', 'created_at', 'assignment_type', 'type_display',
+            'order', 'order_id',
+            # Legger til manglende felt for listevisning
+            'description', 'deadline_date' 
+        )
+        read_only_fields = ('created_at', 'customer_name', 'elevator_serial', 'assigned_to_name', 'status_display', 'type_display', 'order_id')
 
     def validate_status(self, value):
         if value not in [choice[0] for choice in Assignment.STATUS_CHOICES]:
@@ -203,9 +196,12 @@ class AssignmentDetailSerializer(AssignmentSerializer):
     parts_used = AssignmentPartSerializer(many=True, read_only=True)
     
     class Meta(AssignmentSerializer.Meta):
-        fields = AssignmentSerializer.Meta.fields + ['notes', 'parts_used']
-        # Eksempel på dypere nesting hvis ønskelig:
-        # depth = 1
+        fields = AssignmentSerializer.Meta.fields + (
+            'description', 'deadline_date', 'updated_at', 'completed_at',
+            'procedure_step', 'checklist_status', 'procedure_notes',
+            'notes', 'parts_used' # Legger til notes og parts
+        )
+        read_only_fields = AssignmentSerializer.Meta.read_only_fields + ('updated_at', 'completed_at', 'notes', 'parts_used')
 
 class ServiceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -224,3 +220,120 @@ class SalesOpportunitySerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         )
         read_only_fields = ('created_at', 'updated_at', 'customer_name', 'status_display')
+
+class QuoteLineItemSerializer(serializers.ModelSerializer):
+    # Viser detaljer om heistypen ved lesing
+    elevator_type_details = ElevatorTypeSerializer(source='elevator_type', read_only=True)
+    # Beregner linjetotal dynamisk
+    line_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuoteLineItem
+        # Tar nå imot elevator_type ID, ikke description/unit_price
+        fields = ('id', 'quote', 'elevator_type', 'elevator_type_details', 'quantity', 'line_total')
+        # read_only_fields fjernes da vi ikke har unit_price/line_total direkte i modellen
+
+    def get_line_total(self, obj):
+        # Beregner total: antall * pris fra heistype
+        if obj.elevator_type and obj.elevator_type.price is not None:
+            return obj.quantity * obj.elevator_type.price
+        return 0 # Eller annen håndtering hvis pris mangler
+
+class QuoteSerializer(serializers.ModelSerializer):
+    line_items = QuoteLineItemSerializer(many=True, read_only=True) 
+    opportunity_details = SalesOpportunitySerializer(source='opportunity', read_only=True) 
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    # Beregner totalsum dynamisk
+    total_amount = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Quote
+        fields = (
+            'id', 'opportunity', 'opportunity_details', 'quote_number', 'issue_date', 
+            'expiry_date', 'status', 'status_display', 'notes', 'customer_notes', 
+            'total_amount', 'line_items', 
+            'order', # Legger til relatert ordre-ID
+            'created_at', 'updated_at'
+        )
+        read_only_fields = (
+            'quote_number', 
+            'status_display',
+            'line_items', 
+            'opportunity_details',
+            'total_amount', 
+            'order', # Ordre-ID er også read-only her
+            'created_at', 
+            'updated_at'
+        )
+
+    def get_total_amount(self, obj):
+        # Gjenbruker line_total beregningen fra QuoteLineItemSerializer
+        total = 0
+        # Må hente line_items direkte fra databasen her, da read_only=True 
+        # betyr at de ikke er tilgjengelig i validated_data under create/update.
+        # For GET-requests vil obj.line_items.all() fungere hvis prefetch_related brukes i viewet.
+        # For enkelhets skyld her, antar vi at vi henter data (GET)
+        for item in obj.line_items.all(): 
+             if item.elevator_type and item.elevator_type.price is not None:
+                 total += item.quantity * item.elevator_type.price
+        return total
+
+    # Fjerner TODO om å oppdatere total_amount i modellen
+    # Nå skjer beregningen i serializeren.
+
+class OrderLineItemSerializer(serializers.ModelSerializer):
+    # Viser detaljer om heistypen ved lesing
+    elevator_type_details = ElevatorTypeSerializer(source='elevator_type', read_only=True)
+    
+    class Meta:
+        model = OrderLineItem
+        fields = (
+            'id', 'order', 'elevator_type', 'elevator_type_details', 
+            'quantity', 'unit_price_at_order', 'line_total'
+        )
+        read_only_fields = ('line_total',) # Beregnes i modellen nå
+
+class OrderSerializer(serializers.ModelSerializer):
+    line_items = OrderLineItemSerializer(many=True, read_only=True)
+    # Henter kundenavn direkte for enklere visning
+    customer_name = serializers.CharField(source='customer.name', read_only=True)
+    # Viser status-tekst
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    # Kan også inkludere tilbudsnummer hvis ønskelig
+    quote_number = serializers.CharField(source='quote.quote_number', read_only=True, allow_null=True)
+    # Viser relaterte oppdrag (kun IDer for enkelhet)
+    assignment_ids = serializers.PrimaryKeyRelatedField(source='assignments', many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = (
+            'id', 'quote', 'quote_number', 'customer', 'customer_name', 'order_date', 
+            'status', 'status_display', 'total_amount', 'notes', 
+            'line_items', 
+            'assignment_ids', # Legger til assignment IDs
+            'created_at', 'updated_at'
+        )
+        read_only_fields = (
+            'customer_name', 
+            'status_display', 
+            'line_items', 
+            'quote_number', 
+            'assignment_ids', # Assignments er read-only her
+            'created_at', 
+            'updated_at'
+        )
+        # Merk: total_amount og customer bør settes ved opprettelse,
+        # ikke direkte redigeres etterpå (hentes fra tilbud).
+
+# Serializer for Fravær
+class AbsenceSerializer(serializers.ModelSerializer):
+    user_details = UserSerializer(source='user', read_only=True) # Viser brukerinfo
+    absence_type_display = serializers.CharField(source='get_absence_type_display', read_only=True)
+
+    class Meta:
+        model = Absence
+        fields = (
+            'id', 'user', 'user_details', 'start_date', 'end_date', 
+            'absence_type', 'absence_type_display', 'description', 'created_at'
+        )
+        read_only_fields = ('user_details', 'absence_type_display', 'created_at')

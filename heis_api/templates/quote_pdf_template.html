@@ -1,0 +1,130 @@
+{% load static %}{# Viktig for å bruke {% static %} taggen #}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tilbud {{ quote.quote_number }}</title>
+    <style>
+        @page {
+            size: a4 portrait;
+            @frame header_frame {           /* Static Frame */
+                -pdf-frame-content: header_content;
+                left: 50pt; width: 500pt; top: 30pt; height: 100pt;
+            }
+            @frame content_frame {          /* Content Frame */
+                left: 50pt; width: 500pt; top: 150pt; height: 600pt;
+            }
+            @frame footer_frame {           /* Another static Frame */
+                -pdf-frame-content: footer_content;
+                left: 50pt; width: 500pt; top: 770pt; height: 20pt;
+            }
+        }
+        body { font-family: "Helvetica", sans-serif; font-size: 10pt; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: left; vertical-align: top; }
+        th { background-color: #eee; font-weight: bold; }
+        .total-row td { font-weight: bold; background-color: #f8f8f8; }
+        .header-table { width: 100%; margin-bottom: 20px; }
+        .header-table td { border: none; padding: 0; vertical-align: top; }
+        .logo { max-width: 180px; max-height: 80px; }
+        .company-info { text-align: right; font-size: 9pt; }
+        .customer-info { margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; }
+        h1, h2 { color: #000; margin-bottom: 10px; }
+        h1 { font-size: 18pt; border-bottom: 2px solid #555; padding-bottom: 5px;}
+        h2 { font-size: 14pt; }
+        .notes { margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px; font-size: 9pt; }
+        #footer_content { text-align: center; font-size: 8pt; color: #777; }
+    </style>
+</head>
+<body>
+    {# Header content - static frame #}
+    <div id="header_content">
+        <table class="header-table">
+            <tr>
+                <td><img src="{{ logo_path }}" alt="Logo" class="logo"></td> {# Bruker absolutt sti fra view #}
+                <td class="company-info">
+                    <strong>HeisFirma AS</strong><br> {# Erstatt med dynamisk info hvis mulig #}
+                    Gateadresse 123<br>
+                    0123 Oslo<br>
+                    Org.nr: 987654321 MVA<br>
+                    Telefon: 12345678<br>
+                    E-post: kontakt@heisfirma.no
+                </td>
+            </tr>
+        </table>
+        <h1>Tilbud</h1>
+    </div>
+
+    {# Footer content - static frame #}
+    <div id="footer_content">Side <pdf:pagenumber> av <pdf:pagecount>
+    </div>
+
+    {# Main content frame #}
+    <div class="customer-info">
+        <table style="border: none; margin: 0;">
+            <tr>
+                <td style="border: none; width: 50%;">
+                    <strong>Til Kunde:</strong><br>
+                    {{ quote.opportunity.customer.name }}<br>
+                    {% if quote.opportunity.customer.address %}{{ quote.opportunity.customer.address }}<br>{% endif %}
+                    {% if quote.opportunity.customer.zip_code or quote.opportunity.customer.city %}
+                        {{ quote.opportunity.customer.zip_code }} {{ quote.opportunity.customer.city }}<br>
+                    {% endif %}
+                     {% if quote.opportunity.customer.email %}E-post: {{ quote.opportunity.customer.email }}<br>{% endif %}
+                     {% if quote.opportunity.customer.phone %}Telefon: {{ quote.opportunity.customer.phone }}<br>{% endif %}
+                </td>
+                <td style="border: none; width: 50%; vertical-align: top;">
+                     <strong>Tilbudsnummer:</strong> {{ quote.quote_number }}<br>
+                     <strong>Utstedt dato:</strong> {{ quote.issue_date|date:"d.m.Y" }}<br>
+                     <strong>Gyldig til:</strong> {{ quote.expiry_date|date:"d.m.Y"|default:"-" }}<br>
+                     {# Legg til flere felter her ved behov #}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <h2>Linjeelementer</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Beskrivelse</th>
+                <th>Antall</th>
+                <th>Enhetspris (kr)</th>
+                <th>Linjesum (kr)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in line_items %}
+                <tr>
+                    <td>{{ item.elevator_type_details.name|default:"-" }} {# Bruker navnet fra nested serializer #}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.elevator_type_details.price|floatformat:2|default:"-" }} {# Bruker pris fra nested serializer #}</td>
+                    <td>{{ item.line_total|floatformat:2|default:"-" }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Ingen linjeelementer.</td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="3" style="text-align: right;"><strong>Totalsum (kr):</strong></td>
+                <td><strong>{{ total_amount|floatformat:2 }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    {% if quote.customer_notes %}
+        <div class="notes">
+            <h2>Notater til kunde</h2>
+            <p>{{ quote.customer_notes|linebreaksbr }}</p>
+        </div>
+    {% endif %}
+
+    <div class="footer" style="margin-top: 40px; font-size: 9pt;">
+        <p>Med vennlig hilsen,</p>
+        <br><br>
+        <p><strong>HeisFirma AS</strong></p>
+    </div>
+
+</body>
+</html> 

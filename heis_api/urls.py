@@ -5,7 +5,9 @@ from .views import (
     UserViewSet, CustomerViewSet, ElevatorTypeViewSet, ElevatorViewSet, 
     AssignmentViewSet, PartViewSet, AssignmentPartViewSet, 
     AssignmentNoteViewSet, AssignmentChecklistViewSet, ReportViewSet,
-    SalesOpportunityViewSet
+    SalesOpportunityViewSet, QuoteViewSet, QuoteLineItemViewSet,
+    QuotePDFView, OrderViewSet, OrderLineItemViewSet,
+    AbsenceViewSet
 )
 
 router = DefaultRouter()
@@ -19,10 +21,16 @@ router.register(r'assignment-parts', AssignmentPartViewSet)
 router.register(r'assignment-notes', AssignmentNoteViewSet)
 router.register(r'reports', ReportViewSet)
 router.register(r'sales-opportunities', SalesOpportunityViewSet)
+router.register(r'quotes', QuoteViewSet)
+router.register(r'quote-line-items', QuoteLineItemViewSet)
+router.register(r'orders', OrderViewSet)
+router.register(r'order-line-items', OrderLineItemViewSet)
+router.register(r'absences', AbsenceViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     path('assignments/<int:assignment_pk>/checklist/', AssignmentChecklistViewSet.as_view(), name='assignment-checklist-detail'),
+    path('quotes/<int:quote_id>/pdf/', QuotePDFView.as_view(), name='quote-pdf'),
 ]

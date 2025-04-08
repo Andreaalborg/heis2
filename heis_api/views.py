@@ -3,13 +3,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
 from django.db.models import Q
-from .models import User, Customer, ElevatorType, Elevator, Assignment, AssignmentNote, Part, AssignmentPart, AssignmentChecklist, Report, SalesOpportunity
+from .models import User, Customer, ElevatorType, Elevator, Assignment, AssignmentNote, Part, AssignmentPart, AssignmentChecklist, Report, SalesOpportunity, Quote, QuoteLineItem, Order, OrderLineItem, Absence
 from .serializers import (
     UserSerializer, CustomerSerializer, CustomerDetailSerializer,
     ElevatorTypeSerializer, ElevatorSerializer, ElevatorDetailSerializer,
     PartSerializer, AssignmentPartSerializer, AssignmentNoteSerializer,
     AssignmentSerializer, AssignmentDetailSerializer, AssignmentChecklistSerializer,
-    ReportSerializer, SalesOpportunitySerializer
+    ReportSerializer, SalesOpportunitySerializer, QuoteSerializer, QuoteLineItemSerializer,
+    OrderSerializer, OrderLineItemSerializer, AbsenceSerializer
 )
 import os
 from django.conf import settings
@@ -17,6 +18,13 @@ from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import RetrieveUpdateAPIView
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from django.shortcuts import get_object_or_404
+from io import BytesIO
+from django.views import View
+from django.db import transaction
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -303,5 +311,186 @@ class SalesOpportunityViewSet(viewsets.ModelViewSet):
     # filter_backends = [DjangoFilterBackend]
     # filterset_fields = ['status', 'customer']
 
+class QuoteViewSet(viewsets.ModelViewSet):
+    """ API endpoint for tilbud. """
+    queryset = Quote.objects.all().prefetch_related(
+        'line_items__elevator_type', 
+        'opportunity__customer', 
+        'order'
+    ).order_by('-issue_date')
+    serializer_class = QuoteSerializer
+    permission_classes = [permissions.IsAuthenticated] # Bør justeres (f.eks. admin/selger)
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['status', 'opportunity', 'opportunity__customer']
+    search_fields = ['quote_number', 'opportunity__name', 'opportunity__customer__name']
+
+    def perform_create(self, serializer):
+        quote = serializer.save() 
+        quote.quote_number = f"QT-{quote.id:05d}" 
+        quote.save()
+
+    @action(detail=True, methods=['post'], url_path='create-order')
+    @transaction.atomic
+    def create_order(self, request, pk=None):
+        quote = self.get_object()
+
+        if quote.status != 'accepted':
+            return Response({'detail': 'Kan kun opprette ordre fra et akseptert tilbud.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if hasattr(quote, 'order') and quote.order is not None:
+             return Response({'detail': 'Det finnes allerede en ordre for dette tilbudet.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_order = Order.objects.create(
+            quote=quote,
+            customer=quote.opportunity.customer,
+            order_date=timezone.localdate(),
+            total_amount=quote.total_amount,
+        )
+
+        order_lines = []
+        for quote_line in quote.line_items.all():
+            if quote_line.elevator_type:
+                order_lines.append(OrderLineItem(
+                    order=new_order,
+                    elevator_type=quote_line.elevator_type,
+                    quantity=quote_line.quantity,
+                    unit_price_at_order=quote_line.elevator_type.price or 0 
+                ))
+        
+        if order_lines:
+            OrderLineItem.objects.bulk_create(order_lines)
+            calculated_total = sum(line.quantity * line.unit_price_at_order for line in order_lines)
+            if new_order.total_amount != calculated_total:
+                 print(f"Recalculating order total for order {new_order.id}. Initial: {new_order.total_amount}, Calculated: {calculated_total}")
+                 new_order.total_amount = calculated_total
+                 new_order.save()
+
+        serializer = OrderSerializer(new_order, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class QuoteLineItemViewSet(viewsets.ModelViewSet):
+    """ API endpoint for tilbudslinjer. """
+    queryset = QuoteLineItem.objects.all().select_related('elevator_type') # select_related for FK
+    serializer_class = QuoteLineItemSerializer
+    permission_classes = [permissions.IsAuthenticated] # Bør justeres
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['quote'] # Filtrer linjer basert på tilbud
+
+class QuotePDFView(View):
+    """ Genererer en PDF-versjon av et spesifikt tilbud. """
+    
+    # Beholder link_callback for evt. andre bilder i templaten,
+    # men den brukes ikke for hovedlogoen lenger.
+    def link_callback(self, uri, rel):
+        # ... (eksisterende link_callback logikk forblir her) ...
+        # Denne kan potensielt forenkles senere hvis den ikke trengs
+        # for annet enn logoen.
+        # Standard fallback:
+        print(f"link_callback called for: {uri}")
+        return uri
+
+    def get(self, request, *args, **kwargs):
+        quote_id = kwargs.get('quote_id')
+        quote = get_object_or_404(Quote.objects.select_related(
+            'opportunity__customer'
+        ).prefetch_related(
+            'line_items__elevator_type'
+        ), pk=quote_id)
+
+        template_path = 'quote_pdf_template.html'
+        template = get_template(template_path)
+        
+        serializer_context = {'request': request}
+        quote_serializer = QuoteSerializer(quote, context=serializer_context)
+        quote_data = quote_serializer.data
+        
+        # --- Ny, direkte måte å finne logo-sti --- 
+        logo_relative_path = 'images/logo.png' 
+        logo_abs_path = None
+        # Søk i STATICFILES_DIRS definert i settings.py
+        for static_dir in getattr(settings, 'STATICFILES_DIRS', []):
+            potential_path = os.path.join(static_dir, logo_relative_path)
+            if os.path.isfile(potential_path):
+                logo_abs_path = potential_path
+                break # Fant logoen, trenger ikke lete mer
+        
+        if not logo_abs_path:
+            # Fallback hvis STATICFILES_DIRS ikke er satt opp riktig 
+            # eller logoen ligger i en app sin static-mappe.
+            # Prøv å bygge stien relativt til BASE_DIR hvis mulig.
+            # Dette er en antagelse og må kanskje justeres basert på din struktur.
+            potential_path_basedir = os.path.join(settings.BASE_DIR, 'heis_api', 'static', logo_relative_path) 
+            if os.path.isfile(potential_path_basedir):
+                 logo_abs_path = potential_path_basedir
+            else:
+                 print(f"Warning: Could not find logo at '{logo_relative_path}' in STATICFILES_DIRS or common locations.")
+        # --- Slutt ny logikk --- 
+
+        context = {
+            'quote': quote,
+            'line_items': quote_data['line_items'],
+            'total_amount': quote_data['total_amount'],
+            'logo_path': logo_abs_path # Send med den absolutte stien vi fant
+        }
+        
+        html = template.render(context)
+        
+        result = BytesIO()
+        # Sender fortsatt med link_callback i tilfelle andre bilder
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result, link_callback=self.link_callback)
+        
+        if not pdf.err:
+            response = HttpResponse(result.getvalue(), content_type='application/pdf')
+            filename = f"Tilbud_{quote.quote_number or quote.id}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        print(f"Error generating PDF for quote {quote_id}: {pdf.err}")
+        return HttpResponse("Feil ved generering av PDF.", status=500)
+
+class OrderViewSet(viewsets.ModelViewSet):
+    """ API endpoint for Ordrer. """
+    queryset = Order.objects.all().select_related(
+        'customer', 'quote'
+    ).prefetch_related(
+        'line_items__elevator_type' # For å vise detaljer i listen/detaljvisning
+    ).order_by('-order_date')
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated] # Juster tilgang etter behov
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['status', 'customer']
+    search_fields = ['id', 'customer__name', 'quote__quote_number']
+
+    # Tillater ikke direkte oppretting av ordre via POST til /orders/
+    # Ordre skal opprettes via 'create-order' action på QuoteViewSet.
+    http_method_names = ['get', 'put', 'patch', 'delete', 'head', 'options'] # Fjerner 'post'
+
+    # TODO: Implementer logikk for å oppdatere total_amount hvis ordrelinjer endres/slettes
+
+
+class OrderLineItemViewSet(viewsets.ModelViewSet):
+    """ API endpoint for Ordrelinjer. """
+    queryset = OrderLineItem.objects.all().select_related('elevator_type')
+    serializer_class = OrderLineItemSerializer
+    permission_classes = [permissions.IsAuthenticated] # Juster tilgang
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['order']
+
+    # TODO: Logikk for å oppdatere Order.total_amount ved CUD
+
+# ViewSet for Fravær (kun admin har full tilgang)
+class AbsenceViewSet(viewsets.ModelViewSet):
+    """ API endpoint for å administrere fravær. """
+    queryset = Absence.objects.all().select_related('user').order_by('-start_date')
+    serializer_class = AbsenceSerializer
+    # Kun admin kan opprette/endre/slette, andre kan kanskje lese?
+    permission_classes = [IsAdminOrReadOnly] 
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['user', 'absence_type', 'start_date', 'end_date']
+
+    # Kan legge til logikk her for å f.eks. validere datoer, 
+    # eller automatisk sette 'registered_by' hvis det feltet legges til.
+    # def perform_create(self, serializer):
+    #     serializer.save(registered_by=self.request.user)
 
 # Setup the router in urls.py
