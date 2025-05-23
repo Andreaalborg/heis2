@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import User, Customer, ElevatorType, Elevator, Assignment, AssignmentNote, Part, AssignmentPart, AssignmentChecklist, Report, Service, SalesOpportunity, QuoteLineItem, Quote, OrderLineItem, Order, Absence
+from django.db.models import OuterRef, Subquery, F, CharField, Value
+from django.db.models.functions import Coalesce
 
 User = get_user_model()
 
@@ -123,7 +125,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
     type_display = serializers.CharField(source='get_assignment_type_display', read_only=True)
     # Inkluderer relatert ordre-ID
     order_id = serializers.IntegerField(source='order.id', read_only=True, allow_null=True)
-
+    
     class Meta:
         model = Assignment
         fields = (
@@ -337,3 +339,23 @@ class AbsenceSerializer(serializers.ModelSerializer):
             'absence_type', 'absence_type_display', 'description', 'created_at'
         )
         read_only_fields = ('user_details', 'absence_type_display', 'created_at')
+
+# Serializer for prosjektsammendrag
+class ProjectSummarySerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source='customer.name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    # Henter annoterte felt fra queryset
+    last_quote_status = serializers.CharField(read_only=True)
+    last_quote_status_display = serializers.CharField(read_only=True)
+    order_status = serializers.CharField(read_only=True)
+    order_status_display = serializers.CharField(read_only=True)
+    order_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = SalesOpportunity
+        fields = (
+            'id', 'name', 'customer', 'customer_name', 'status', 'status_display',
+            'estimated_value', 'created_at',
+            'last_quote_status', 'last_quote_status_display', # Nye felt
+            'order_id', 'order_status', 'order_status_display' # Nye felt
+        )

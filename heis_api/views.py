@@ -10,7 +10,7 @@ from .serializers import (
     PartSerializer, AssignmentPartSerializer, AssignmentNoteSerializer,
     AssignmentSerializer, AssignmentDetailSerializer, AssignmentChecklistSerializer,
     ReportSerializer, SalesOpportunitySerializer, QuoteSerializer, QuoteLineItemSerializer,
-    OrderSerializer, OrderLineItemSerializer, AbsenceSerializer
+    OrderSerializer, OrderLineItemSerializer, AbsenceSerializer, ProjectSummarySerializer
 )
 import os
 from django.conf import settings
@@ -25,6 +25,8 @@ from django.shortcuts import get_object_or_404
 from io import BytesIO
 from django.views import View
 from django.db import transaction
+from django.db.models import OuterRef, Subquery, F, Max, Value, CharField
+from django.db.models.functions import Coalesce
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -36,7 +38,8 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['role', 'is_active']
     search_fields = ['username', 'first_name', 'last_name', 'email']
     
     def perform_update(self, serializer):
@@ -139,7 +142,14 @@ class PartViewSet(viewsets.ModelViewSet):
 class AssignmentViewSet(viewsets.ModelViewSet):
     queryset = Assignment.objects.all().order_by('-created_at')
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['status', 'assignment_type', 'assigned_to', 'customer']
+    filterset_fields = {
+        'status': ['exact', 'in'],
+        'assignment_type': ['exact', 'in'],
+        'assigned_to': ['exact'],
+        'customer': ['exact'],
+        'scheduled_date': ['gte', 'lte', 'exact', 'isnull'],
+        'deadline_date': ['gte', 'lte', 'exact', 'isnull'],
+    }
     search_fields = ['title', 'description', 'customer__name', 'elevator__serial_number']
     permission_classes = [permissions.IsAuthenticated]
     
@@ -458,7 +468,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated] # Juster tilgang etter behov
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['status', 'customer']
+    filterset_fields = {
+        'status': ['exact', 'in'], 
+        'customer': ['exact'],
+        'order_date': ['gte', 'lte', 'exact']
+    }
     search_fields = ['id', 'customer__name', 'quote__quote_number']
 
     # Tillater ikke direkte oppretting av ordre via POST til /orders/
@@ -486,11 +500,76 @@ class AbsenceViewSet(viewsets.ModelViewSet):
     # Kun admin kan opprette/endre/slette, andre kan kanskje lese?
     permission_classes = [IsAdminOrReadOnly] 
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['user', 'absence_type', 'start_date', 'end_date']
+    filterset_fields = {
+        'user': ['exact'], 
+        'absence_type': ['exact', 'in'], 
+        'start_date': ['gte', 'lte', 'exact'],
+        'end_date': ['gte', 'lte', 'exact']
+    }
 
     # Kan legge til logikk her for å f.eks. validere datoer, 
     # eller automatisk sette 'registered_by' hvis det feltet legges til.
     # def perform_create(self, serializer):
     #     serializer.save(registered_by=self.request.user)
+
+# ViewSet for Prosjektsammendrag (Read Only)
+class ProjectSummaryViewSet(viewsets.ReadOnlyModelViewSet):
+    """ Viser et sammendrag av salgsmuligheter med relatert status. """
+    serializer_class = ProjectSummarySerializer
+    permission_classes = [permissions.IsAuthenticated] # Admin/Selger?
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    # Filtrering/Søk kan legges til her om ønskelig
+    filterset_fields = {
+        'status': ['exact', 'in'], 
+        'customer': ['exact'], 
+        # Kan filtrere på annoterte felt også, men krever litt mer
+        # 'last_quote_status': ['exact'],
+        # 'order_status': ['exact', 'isnull'],
+    }
+    search_fields = ['name', 'customer__name']
+
+    def get_queryset(self):
+        # Subquery for å hente status for det siste (nyeste) tilbudet
+        latest_quote_sq = Quote.objects.filter(
+            opportunity=OuterRef('pk')
+        ).order_by('-created_at') # Sorter på opprettet dato
+
+        # Subquery for å hente status og ID for ordren (OneToOne-relasjon)
+        order_sq = Order.objects.filter(
+            quote__opportunity=OuterRef('pk') # Kobler via Quote til Opportunity
+        )
+
+        queryset = SalesOpportunity.objects.select_related('customer').annotate(
+            # Henter status for siste tilbud, setter '-' hvis ingen tilbud finnes
+            last_quote_status=Coalesce(
+                Subquery(latest_quote_sq.values('status')[:1]),
+                Value('-', output_field=CharField())
+            ),
+             # Henter ID for ordren, setter None hvis ingen ordre finnes
+             order_id=Subquery(order_sq.values('id')[:1]),
+             # Henter status for ordren, setter '-' hvis ingen ordre finnes
+             order_status=Coalesce(
+                 Subquery(order_sq.values('status')[:1]),
+                 Value('-', output_field=CharField())
+             ),
+            # Henter display-navn for quote/order status
+            # Må gjøres manuelt da vi ikke har objektet direkte
+            last_quote_status_display=F('last_quote_status'), # Start med koden
+            order_status_display=F('order_status'), # Start med koden
+
+        ).order_by('-created_at')
+        
+        # Map display-verdier manuelt etter annotering
+        # (Kan gjøres mer elegant med en custom manager eller i serializeren)
+        quote_status_map = dict(Quote.STATUS_CHOICES)
+        order_status_map = dict(Order.STATUS_CHOICES)
+        
+        # Går gjennom queryset for å sette display-verdier
+        # Dette er litt ineffektivt, bør ideelt sett løses i DB/Serializer
+        # for entry in queryset:
+        #     entry.last_quote_status_display = quote_status_map.get(entry.last_quote_status, entry.last_quote_status)
+        #     entry.order_status_display = order_status_map.get(entry.order_status, entry.order_status)
+            
+        return queryset
 
 # Setup the router in urls.py

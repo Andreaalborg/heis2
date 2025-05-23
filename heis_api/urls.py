@@ -7,7 +7,8 @@ from .views import (
     AssignmentNoteViewSet, AssignmentChecklistViewSet, ReportViewSet,
     SalesOpportunityViewSet, QuoteViewSet, QuoteLineItemViewSet,
     QuotePDFView, OrderViewSet, OrderLineItemViewSet,
-    AbsenceViewSet
+    AbsenceViewSet,
+    ProjectSummaryViewSet
 )
 
 router = DefaultRouter()
@@ -26,6 +27,7 @@ router.register(r'quote-line-items', QuoteLineItemViewSet)
 router.register(r'orders', OrderViewSet)
 router.register(r'order-line-items', OrderLineItemViewSet)
 router.register(r'absences', AbsenceViewSet)
+router.register(r'project-summary', ProjectSummaryViewSet, basename='project-summary')
 
 urlpatterns = [
     path('', include(router.urls)),
