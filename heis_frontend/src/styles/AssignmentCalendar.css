@@ -1,0 +1,203 @@
+/* AssignmentCalendar.css */
+
+.calendar-container {
+  margin: 20px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  /* Tillat horisontal scrolling for innholdet hvis det blir for bredt */
+  overflow-x: auto; 
+}
+
+.calendar-container h1 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Juster utseendet til FullCalendar her om nødvendig */
+.fc .fc-button {
+  /* Eksempel: endre knappefarge */
+  /* background-color: #007bff; 
+     border-color: #007bff; */
+}
+
+/* Fargelegg events basert på status (eksempel) */
+/* Du må legge til klasser eller style-attributter på event-objektene 
+   basert på f.eks. assignment.status for at dette skal fungere 
+.fc-event.status-ny {
+  background-color: lightblue;
+  border-color: lightblue;
+}
+.fc-event.status-paabegynt {
+  background-color: orange;
+  border-color: orange;
+}*/
+
+/* Styling for bakgrunnsevents */
+.fc-event.fc-event-start.fc-event-end.fc-event-today.fc-event-future {
+  border-radius: 4px;
+}
+
+/* Forbedre lesbarhet av events */
+.fc-event-main {
+  padding: 2px 4px;
+  font-weight: 500;
+}
+
+/* Gjør bakgrunnsevents mer subtile */
+.fc-event.fc-event-start.fc-event-end.fc-event-today.fc-event-future.fc-event-background {
+  opacity: 0.25;
+  border: none;
+}
+
+/* Forbedre hover-effekt på events */
+.fc-event:hover {
+  filter: brightness(0.9);
+}
+
+/* Styling for loading og error states */
+.loading-container {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #666;
+}
+
+.error-container {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 20px 0;
+  color: #c00;
+} 
+
+/* Mer kompakt styling for kalender-events */
+.fc-daygrid-event {
+  font-size: 0.7em; /* Enda mindre font */
+  padding: 0px 3px; /* Minimal padding */
+  margin-top: 1px;
+  margin-bottom: 1px;
+  white-space: nowrap; /* Hindre linjeskift */
+  overflow: hidden; /* Skjul tekst som ikke får plass */
+  text-overflow: ellipsis; /* Vis ... for skjult tekst */
+  line-height: 1.4; /* Juster for vertikal sentrering */
+}
+
+/* Styling for innholdet generert av eventContent */
+.fc-event-main-custom {
+  display: flex; /* Prøv flexbox for å holde ting på linje */
+  align-items: center;
+  width: 100%;
+  overflow: hidden; /* Skjul overløp fra containeren også */
+}
+
+.fc-event-time {
+  font-weight: bold;
+  margin-right: 4px; /* Litt mellomrom */
+  flex-shrink: 0; /* Ikke la tiden krympe */
+}
+
+.fc-event-title {
+  flex-grow: 1; /* La tittelen ta resten av plassen */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 4px; /* Mellomrom før kunde */
+}
+
+.fc-event-customer {
+  opacity: 0.8;
+  white-space: nowrap; /* Ikke la kundenavn bryte linje */
+  flex-shrink: 0; /* Ikke la kundenavn krympe for mye */
+}
+
+/* Styling for bakgrunns-events (fravær) */
+.fc-bg-event.fc-event-absence {
+ opacity: 0.3;
+}
+
+/* Fravær vist som vanlig event (brukes ikke hvis display: 'background') */
+.fc-daygrid-event.fc-event-absence {
+text-align: center;
+font-style: italic;
+}
+
+/* Rutenett-styling for FullCalendar */
+
+/* Generelt for dag/uke-visning */
+.fc .fc-timegrid-col.fc-day, 
+.fc .fc-timegrid-slot-lane {
+    border-right: 1px solid #eee; /* Vertikale linjer mellom dager/kolonner */
+}
+
+.fc .fc-timegrid-slot-lane {
+    border-bottom: 1px dotted #eee; /* Horisontale linjer mellom tids-slots (stiplet) */
+}
+
+/* Linje for "nå" */
+.fc .fc-timegrid-now-indicator-line {
+    border-color: red;
+    border-width: 1px;
+}
+
+/* Rutenett for månedsvisning */
+.fc .fc-daygrid-day {
+    border: 1px solid #eee; /* Ramme rundt hver dag */
+}
+
+/* Rutenett for ressurs-tidslinje */
+/* Vertikale linjer for tidsinndeling */
+.fc .fc-timeline-slot-lane .fc-timeline-slot { 
+    border-right: 1px dotted #eee; 
+}
+/* Horisontale linjer mellom ressurser */
+.fc .fc-datagrid-cell-main { 
+    border-bottom: 1px solid #eee;
+}
+/* Justerer eventuelt ramme rundt hele ressurs-området */
+.fc .fc-resource {
+   /* border-bottom: 1px solid #ccc; */ 
+}
+
+/* --- Rutenett-styling (Presiseringer) --- */
+
+/* Vertikale linjer for TimeGrid (Uke/Dag) og ResourceTimeGrid */
+.fc .fc-timegrid-col.fc-day { 
+    border-right: 1px solid #eee; 
+}
+
+/* Horisontale linjer for TimeGrid (Uke/Dag) og ResourceTimeGrid */
+.fc .fc-timegrid-slot-lane {
+    border-bottom: 1px dotted #eee; 
+}
+/* Sikrer at den siste slot-linjen også får en bunnlinje i noen tilfeller */
+.fc .fc-timegrid-slots table { 
+    border-bottom: 1px dotted #eee;
+}
+
+/* Linje for "nå" (Som før) */
+.fc .fc-timegrid-now-indicator-line {
+    border-color: red;
+    border-width: 1px;
+}
+
+/* Rutenett for Månedsvisning (Som før) */
+.fc .fc-daygrid-day {
+    border: 1px solid #eee; 
+}
+
+/* Rutenett for Ressurs-Tidslinje (Som før) */
+.fc .fc-timeline-slot-lane .fc-timeline-slot { 
+    border-right: 1px dotted #eee; 
+}
+.fc .fc-datagrid-cell-main { 
+    border-bottom: 1px solid #eee;
+}
+.fc .fc-resource {
+   /* border-bottom: 1px solid #ccc; */ 
+}
+
+/* --- Kompakt Event Styling (Som før) --- */
+/* ... (.fc-daygrid-event, .fc-event-main-custom, etc.) ... */

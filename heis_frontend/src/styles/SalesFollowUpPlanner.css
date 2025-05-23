@@ -1,0 +1,183 @@
+.sales-follow-up-container {
+    padding: 20px;
+}
+
+/* Stilisering av salgsmuligheter-listen */
+.opportunities-list {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.opportunity-item {
+    padding: 15px;
+    margin-bottom: 12px;
+    border-radius: 5px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 4px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.opportunity-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+}
+
+.opportunity-item.selected {
+    border-left-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.opportunity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.opportunity-header h6 {
+    margin: 0;
+    font-weight: 500;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    color: white;
+    font-weight: 500;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+}
+
+.badge-primary {
+    background-color: #007bff;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+}
+
+.badge-success {
+    background-color: #28a745;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+}
+
+.opportunity-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 8px;
+}
+
+.opportunity-value {
+    font-weight: 500;
+    color: #28a745;
+}
+
+.opportunity-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #6c757d;
+    padding-top: 8px;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Stilisering av oppgavelisten */
+.tasks-list {
+    margin-top: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.task-item {
+    display: flex;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    background-color: #fff;
+    border-left: 3px solid #dee2e6;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+.task-item.completed-task {
+    border-left-color: #28a745;
+    opacity: 0.7;
+}
+
+.task-item.completed-task .task-title,
+.task-item.completed-task .task-description {
+    text-decoration: line-through;
+    color: #6c757d;
+}
+
+.task-item.overdue-task {
+    border-left-color: #dc3545;
+    background-color: #fff8f8;
+}
+
+.task-item.due-today-task {
+    border-left-color: #ffc107;
+    background-color: #fffdf7;
+}
+
+.task-status {
+    margin-right: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.task-content {
+    flex: 1;
+}
+
+.task-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.task-description {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.task-dates {
+    display: flex;
+    gap: 15px;
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.task-actions {
+    display: flex;
+    align-items: center;
+}
+
+/* Stilisering av mal-knapper */
+.template-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+/* Responsive justering */
+@media (max-width: 992px) {
+    .opportunities-list {
+        max-height: 400px;
+    }
+} 

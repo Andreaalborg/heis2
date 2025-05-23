@@ -1,0 +1,46 @@
+/* TechnicianAvailabilityView.css */
+
+.availability-table th,
+.availability-table td {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 0.85em;
+  white-space: nowrap; /* Unngå linjeskift i celler */
+}
+
+.availability-table .technician-header,
+.availability-table .technician-name {
+  text-align: left;
+  position: sticky; /* Gjør tekniker-kolonnen fast */
+  left: 0;
+  background-color: white; /* Bakgrunn for å dekke over innhold bak */
+  z-index: 1;
+}
+.availability-table .technician-header {
+   z-index: 2; /* Header over celler */
+}
+
+
+.availability-table .date-header {
+  min-width: 80px; /* Gi litt bredde til datokolonnene */
+}
+
+.availability-cell {
+  cursor: default; /* Standard musepeker */
+}
+
+.availability-cell.status-free {
+  background-color: #dff0d8; /* Lys grønn */
+  color: #3c763d;
+}
+
+.availability-cell.status-busy {
+  background-color: #fcf8e3; /* Lys gul */
+  color: #8a6d3b;
+}
+
+.availability-cell.status-absence {
+  background-color: #f2dede; /* Lys rød */
+  color: #a94442;
+  font-style: italic;
+} 
