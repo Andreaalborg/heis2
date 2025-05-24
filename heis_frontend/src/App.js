@@ -147,8 +147,8 @@ function App() {
     };
 
     return (
-        <AuthProvider> {/* AuthProvider wrapper appen */}
-            <Router>
+        <Router>
+            <AuthProvider> {/* AuthProvider wrapper app-innholdet */}
                 <div className="app">
                     {/* Navbar vises kun hvis brukeren er autentisert */}
                     {isAuthenticated && (
@@ -163,7 +163,7 @@ function App() {
                             {/* Innloggingsside */}
                             <Route 
                                 path="/login" 
-                                element={!isAuthenticated ? <Auth setIsAuthenticated={handleAuthentication} /> : <Navigate to={getHomeRoute()} replace />}
+                                element={!isAuthenticated ? <Auth /> : <Navigate to={getHomeRoute()} replace />}
                             />
                             
                             {/* Admin Ruter */}
@@ -295,8 +295,8 @@ function App() {
                         </Routes>
                     </div>
                 </div>
-            </Router>
-        </AuthProvider>
+            </AuthProvider>
+        </Router>
     );
 }
 
