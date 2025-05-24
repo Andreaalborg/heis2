@@ -39,19 +39,24 @@ function Assignments() {
         const token = localStorage.getItem('token');
         const config = { headers: { 'Authorization': `Token ${token}` } };
 
-        const [assignmentRes, customerRes, userRes] = await Promise.all([
+        const [assignmentsResponse, customersResponse, usersResponse] = await Promise.all([
             axios.get(API_URL, config),
-            axios.get('/api/customers/', config),
-            axios.get('/api/users/', config)
+            axios.get(`${API_BASE_URL}/api/customers/`, config),
+            axios.get(`${API_BASE_URL}/api/users/`, config)
         ]);
 
-        setAssignments(assignmentRes.data.results || assignmentRes.data);
-        setCustomers(customerRes.data.results || customerRes.data);
-        setUsers(userRes.data.results || userRes.data);
+        const assignmentsData = assignmentsResponse.data.results || assignmentsResponse.data;
+        setAssignments(Array.isArray(assignmentsData) ? assignmentsData : []);
+
+        const customersData = customersResponse.data.results || customersResponse.data;
+        setCustomers(Array.isArray(customersData) ? customersData : []);
+
+        const usersData = usersResponse.data.results || usersResponse.data;
+        setUsers(Array.isArray(usersData) ? usersData : []);
 
     } catch (err) {
         setError('Kunne ikke hente nødvendig data.');
-        console.error("Fetch Initial Data Error:", err);
+        console.error("Feil ved henting av initialdata:", err);
         setAssignments([]);
         setCustomers([]);
         setUsers([]);
