@@ -23,6 +23,7 @@ import AbsenceManagement from './components/AbsenceManagement';
 import TechnicianAvailabilityView from './components/TechnicianAvailabilityView';
 import SalesPipelineBoard from './components/SalesPipelineBoard';
 import SalesFollowUpPlanner from './components/SalesFollowUpPlanner';
+import { AuthProvider } from './components/Auth'; // Importer AuthProvider
 
 // Stilark
 import './App.css';
@@ -146,154 +147,156 @@ function App() {
     };
 
     return (
-        <Router>
-            <div className="app">
-                {/* Navbar vises kun hvis brukeren er autentisert */}
-                {isAuthenticated && (
-                    <Navbar 
-                        isAuthenticated={isAuthenticated} 
-                        setIsAuthenticated={handleAuthentication} // Bruker nå den sentraliserte funksjonen
-                        userRole={userRole} // Send med rollen
-                    />
-                )}
-                <div className="content">
-                    <Routes>
-                        {/* Innloggingsside */}
-                        <Route 
-                            path="/login" 
-                            element={!isAuthenticated ? <Auth setIsAuthenticated={handleAuthentication} /> : <Navigate to={getHomeRoute()} replace />}
+        <AuthProvider> {/* AuthProvider wrapper appen */}
+            <Router>
+                <div className="app">
+                    {/* Navbar vises kun hvis brukeren er autentisert */}
+                    {isAuthenticated && (
+                        <Navbar 
+                            isAuthenticated={isAuthenticated} 
+                            setIsAuthenticated={handleAuthentication} // Bruker nå den sentraliserte funksjonen
+                            userRole={userRole} // Send med rollen
                         />
-                        
-                        {/* Admin Ruter */}
-                        <Route path="/dashboard" element={
-                            <ProtectedRoute allowedRoles={['admin']}>
-                                <Dashboard /> 
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/users" element={
-                            <ProtectedRoute allowedRoles={['admin']}>
-                                <Users />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/elevator-types" element={
-                            <ProtectedRoute allowedRoles={['admin']}>
-                                <ElevatorTypeList />
-                            </ProtectedRoute>
-                        } />
-                        {/* Admin Rute for Fravær */}
-                        <Route path="/absences" element={
-                            <ProtectedRoute allowedRoles={['admin']}>
-                                <AbsenceManagement />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Tekniker Ruter */}
-                        <Route path="/tekniker-dashboard" element={
-                            <ProtectedRoute allowedRoles={['admin', 'tekniker']}>
-                                <TeknikerDashboard /> 
-                            </ProtectedRoute>
-                        } />
-                        {/* Felles ruter (juster roller etter behov) */}
-                        <Route path="/assignments" element={
-                            <ProtectedRoute allowedRoles={['admin', 'tekniker', 'selger']}> 
-                                <Assignments />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/calendar" element={
-                            <ProtectedRoute allowedRoles={['admin', 'tekniker', 'selger']}>
-                                <AssignmentCalendar />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Selger Ruter */}
-                        <Route path="/selger-dashboard" element={
-                            <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                <SelgerDashboard /> 
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/customers" element={
-                            <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                <Customers />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/elevators" element={
-                            <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                <Elevators />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Salgsmuligheter (Admin, Selger) */}
-                        <Route path="/sales-opportunities" element={
-                            <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                <SalesOpportunityList />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Salgs-pipeline (Admin, Selger) */}
-                        <Route path="/sales-pipeline" element={
-                            <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                <SalesPipelineBoard />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Oppfølgingsplan for salg (Admin, Selger) */}
-                        <Route path="/sales-follow-up" element={
-                            <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                <SalesFollowUpPlanner />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Tilbudsdetaljer (Admin, Selger) */}
-                        <Route path="/quotes/:quoteId" element={
-                            <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                <QuoteDetailView />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Tilbudsliste (Admin, Selger) */}
-                        <Route path="/quotes" element={
-                            <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                <QuoteList />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Ordre Ruter (Admin, Selger, kanskje Tekniker for visning?) */}
-                        <Route path="/orders" element={
-                             <ProtectedRoute allowedRoles={['admin', 'selger', 'tekniker']}>
-                                <OrderList />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/orders/:orderId" element={
-                             <ProtectedRoute allowedRoles={['admin', 'selger', 'tekniker']}>
-                                <OrderDetailView />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Admin Rute for Tilgjengelighet */}
-                        <Route path="/availability" element={
-                            <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                <TechnicianAvailabilityView />
-                            </ProtectedRoute>
-                        } />
-                        
-                        {/* Omdirigering og feilsider */}
-                        <Route path="/" element={<Navigate to={getHomeRoute()} replace />} />
-                        <Route path="/unauthorized" element={
-                            <div style={{ padding: '20px' }}>
-                                <h2>Ingen tilgang</h2>
-                                <p>Du har dessverre ikke tilgang til å se denne siden.</p>
-                            </div>
-                        } />
-                        <Route path="*" element={
-                            <div style={{ padding: '20px' }}>
-                                <h2>404 - Siden ble ikke funnet</h2>
-                                <p>Beklager, vi fant ikke siden du lette etter.</p>
-                            </div>
-                        } />
-                    </Routes>
+                    )}
+                    <div className="content">
+                        <Routes>
+                            {/* Innloggingsside */}
+                            <Route 
+                                path="/login" 
+                                element={!isAuthenticated ? <Auth setIsAuthenticated={handleAuthentication} /> : <Navigate to={getHomeRoute()} replace />}
+                            />
+                            
+                            {/* Admin Ruter */}
+                            <Route path="/dashboard" element={
+                                <ProtectedRoute allowedRoles={['admin']}>
+                                    <Dashboard /> 
+                                </ProtectedRoute>
+                            } />
+                            <Route path="/users" element={
+                                <ProtectedRoute allowedRoles={['admin']}>
+                                    <Users />
+                                </ProtectedRoute>
+                            } />
+                            <Route path="/elevator-types" element={
+                                <ProtectedRoute allowedRoles={['admin']}>
+                                    <ElevatorTypeList />
+                                </ProtectedRoute>
+                            } />
+                            {/* Admin Rute for Fravær */}
+                            <Route path="/absences" element={
+                                <ProtectedRoute allowedRoles={['admin']}>
+                                    <AbsenceManagement />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Tekniker Ruter */}
+                            <Route path="/tekniker-dashboard" element={
+                                <ProtectedRoute allowedRoles={['admin', 'tekniker']}>
+                                    <TeknikerDashboard /> 
+                                </ProtectedRoute>
+                            } />
+                            {/* Felles ruter (juster roller etter behov) */}
+                            <Route path="/assignments" element={
+                                <ProtectedRoute allowedRoles={['admin', 'tekniker', 'selger']}> 
+                                    <Assignments />
+                                </ProtectedRoute>
+                            } />
+                            <Route path="/calendar" element={
+                                <ProtectedRoute allowedRoles={['admin', 'tekniker', 'selger']}>
+                                    <AssignmentCalendar />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Selger Ruter */}
+                            <Route path="/selger-dashboard" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <SelgerDashboard /> 
+                                </ProtectedRoute>
+                            } />
+                            <Route path="/customers" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <Customers />
+                                </ProtectedRoute>
+                            } />
+                            <Route path="/elevators" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <Elevators />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Salgsmuligheter (Admin, Selger) */}
+                            <Route path="/sales-opportunities" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <SalesOpportunityList />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Salgs-pipeline (Admin, Selger) */}
+                            <Route path="/sales-pipeline" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <SalesPipelineBoard />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Oppfølgingsplan for salg (Admin, Selger) */}
+                            <Route path="/sales-follow-up" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <SalesFollowUpPlanner />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Tilbudsdetaljer (Admin, Selger) */}
+                            <Route path="/quotes/:quoteId" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <QuoteDetailView />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Tilbudsliste (Admin, Selger) */}
+                            <Route path="/quotes" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <QuoteList />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Ordre Ruter (Admin, Selger, kanskje Tekniker for visning?) */}
+                            <Route path="/orders" element={
+                                 <ProtectedRoute allowedRoles={['admin', 'selger', 'tekniker']}>
+                                    <OrderList />
+                                </ProtectedRoute>
+                            } />
+                            <Route path="/orders/:orderId" element={
+                                 <ProtectedRoute allowedRoles={['admin', 'selger', 'tekniker']}>
+                                    <OrderDetailView />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Admin Rute for Tilgjengelighet */}
+                            <Route path="/availability" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <TechnicianAvailabilityView />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Omdirigering og feilsider */}
+                            <Route path="/" element={<Navigate to={getHomeRoute()} replace />} />
+                            <Route path="/unauthorized" element={
+                                <div style={{ padding: '20px' }}>
+                                    <h2>Ingen tilgang</h2>
+                                    <p>Du har dessverre ikke tilgang til å se denne siden.</p>
+                                </div>
+                            } />
+                            <Route path="*" element={
+                                <div style={{ padding: '20px' }}>
+                                    <h2>404 - Siden ble ikke funnet</h2>
+                                    <p>Beklager, vi fant ikke siden du lette etter.</p>
+                                </div>
+                            } />
+                        </Routes>
+                    </div>
                 </div>
-            </div>
-        </Router>
+            </Router>
+        </AuthProvider>
     );
 }
 
