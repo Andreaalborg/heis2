@@ -58,21 +58,11 @@ MIDDLEWARE = [
 ]
 
 # CORS innstillinger
-# Fjern eller kommenter ut den gamle CORS_ALLOWED_ORIGINS
-# CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,https://6831c4aed1096e00089e4a07--bright-sprite-31c959.netlify.app,https://bright-sprite-31c959.netlify.app').split(',')
-
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*--bright-sprite-31c959\.netlify\.app$", # Matcher alle deploy previews
-    r"^https://bright-sprite-31c959\.netlify\.app$",    # Matcher din hoved Netlify URL
-    r"^http://localhost:3000$", # For lokal utvikling
-]
-# Hvis du har en .env-fil som setter CORS_ALLOWED_ORIGINS, kan du vurdere å bruke den 
-# eller sørge for at regexene dekker behovene dine.
-# For eksempel, du kan legge til en sjekk for os.getenv hvis du vil overstyre med .env:
-# if os.getenv('CORS_ALLOWED_ORIGINS_ENV'):
-#     CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS_ENV').split(',')
-# else:
-#     CORS_ALLOWED_ORIGIN_REGEXES = [...]
+# Gå tilbake til å bruke os.getenv for CORS_ALLOWED_ORIGINS
+CORS_ALLOWED_ORIGINS = os.getenv(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:3000,https://bright-sprite-31c959.netlify.app' # En fornuftig default
+).split(',')
 
 CORS_ALLOW_CREDENTIALS = True
 
