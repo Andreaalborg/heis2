@@ -64,6 +64,13 @@ CORS_ALLOWED_ORIGINS = os.getenv(
     'http://localhost:3000,https://bright-sprite-31c959.netlify.app' # En fornuftig default
 ).split(',')
 
+# Sikre at CORS_ALLOWED_ORIGIN_REGEXES er fjernet eller kommentert ut
+# CORS_ALLOWED_ORIGIN_REGEXES = [
+#     r"^https://.*--bright-sprite-31c959\\.netlify\\.app$",
+#     r"^https://bright-sprite-31c959\\.netlify\\.app$",
+#     r"^http://localhost:3000$",
+# ]
+
 CORS_ALLOW_CREDENTIALS = True
 
 # Legg til i produksjon
