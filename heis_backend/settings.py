@@ -58,7 +58,7 @@ MIDDLEWARE = [
 ]
 
 # CORS innstillinger
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,https://your-netlify-app-name.netlify.app').split(',')
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,https://6831c4aed1096e00089e4a07--bright-sprite-31c959.netlify.app,https://bright-sprite-31c959.netlify.app').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 # Legg til i produksjon
