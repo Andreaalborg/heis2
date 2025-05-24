@@ -1,16 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Auth.css';
 import 'bulma/css/bulma.min.css';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const AuthContext = createContext(null);
 
-const Auth = ({ setIsAuthenticated }) => {
+// export const API_BASE_URL = 'http://localhost:8000'; // Din backend-URL
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+export const AuthProvider = ({ children }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [userData, setUserData] = useState(null);
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError('');
+
+        console.log("Forsøker å logge inn med:", { username, password });
+
+        try {
+            const response = await axios.post(`${API_BASE_URL}/api-token-auth/`, {
+                username,
+                password
+            });
+
+            if (response.data.token) {
+                const token = response.data.token;
+                localStorage.setItem('token', token);
+                localStorage.setItem('username', username);
+                
+                // Hent brukerinformasjon for å få rollen
+                const userResponse = await axios.get(`${API_BASE_URL}/api/users/current_user/`, {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                
+                const userData = userResponse.data;
+                
+                // Kall handleAuthentication fra App.js for å oppdatere state og lagre brukerdata
+                setIsAuthenticated(true, userData);
+
+                // Naviger basert på rolle
+                switch(userData.role) {
+                    case 'admin':
+                        navigate('/dashboard');
+                        break;
+                    case 'tekniker':
+                        navigate('/tekniker-dashboard');
+                        break;
+                    case 'selger':
+                        navigate('/selger-dashboard');
+                        break;
+                    default:
+                        console.warn(`Ukjent brukerrolle ved innlogging: ${userData.role}`);
+                        navigate('/login');
+                        setIsAuthenticated(false);
+                }
+            }
+        } catch (err) {
+            setError('Feil brukernavn eller passord. Prøv igjen.');
+            console.error('Innloggingsfeil:', err.response || err.message);
+            setIsAuthenticated(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <AuthContext.Provider value={{ username, password, error, isLoading, isAuthenticated, userData, setUsername, setPassword, setError, setIsLoading, setIsAuthenticated, setUserData }}>
+            {children}
+        </AuthContext.Provider>
+    );
+};
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
+
+const Auth = ({ setIsAuthenticated }) => {
+    const { username, password, error, isLoading, isAuthenticated, userData, setUsername, setPassword, setError, setIsLoading, setIsAuthenticated, setUserData } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {

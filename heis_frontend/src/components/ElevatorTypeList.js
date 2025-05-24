@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AddEditElevatorTypeModal from './AddEditElevatorTypeModal'; // Lager denne snart
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const ElevatorTypeList = () => {
     const [elevatorTypes, setElevatorTypes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +21,7 @@ const ElevatorTypeList = () => {
         try {
             const token = localStorage.getItem('token');
             // Antar at alle autentiserte kan se typer, men kun admin kan endre (pga IsAdminOrReadOnly i view)
-            const response = await axios.get('http://localhost:8000/api/elevator-types/', {
+            const response = await axios.get(`${API_BASE_URL}/api/elevator-types/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const typeData = response.data.results || response.data;
@@ -59,7 +61,7 @@ const ElevatorTypeList = () => {
             setError('');
             try {
                 const token = localStorage.getItem('token');
-                await axios.delete(`http://localhost:8000/api/elevator-types/${id}/`, {
+                await axios.delete(`${API_BASE_URL}/api/elevator-types/${id}/`, {
                     headers: { 'Authorization': `Token ${token}` }
                 });
                 fetchElevatorTypes(); // Hent oppdatert liste

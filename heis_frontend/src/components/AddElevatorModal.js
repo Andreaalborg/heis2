@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+// import axios from 'axios'; // Fjernes
+import apiClient from '../api'; // <--- IMPORTER APIKLIENTEN
 import Modal from './Modal';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const AddElevatorModal = ({ isOpen, onClose, customers, elevatorTypes, onElevatorAdded }) => {
     const [formData, setFormData] = useState({
@@ -70,8 +73,6 @@ const AddElevatorModal = ({ isOpen, onClose, customers, elevatorTypes, onElevato
         }
         
         try {
-            const token = localStorage.getItem('token');
-            
             // Opprett FormData-objekt for å håndtere fil-opplasting
             const elevatorFormData = new FormData();
             
@@ -90,17 +91,23 @@ const AddElevatorModal = ({ isOpen, onClose, customers, elevatorTypes, onElevato
                 elevatorFormData.append('certification', uploadedFiles.certification);
             }
             
-            // Send forespørsel
-            const response = await axios.post(
-                'http://localhost:8000/api/elevators/',
-                elevatorFormData,
-                {
-                    headers: {
-                        'Authorization': `Token ${token}`,
-                        'Content-Type': 'multipart/form-data'
-                    }
+            // Send forespørsel - token og Content-Type håndteres av apiClient
+            // const response = await axios.post(
+            //     'http://localhost:8000/api/elevators/',
+            //     elevatorFormData,
+            //     {
+            //         headers: {
+            //             'Authorization': `Token ${token}`,
+            //             'Content-Type': 'multipart/form-data' // Viktig for filopplasting
+            //         }
+            //     }
+            // );
+            const response = await apiClient.post('/api/elevators/', elevatorFormData, {
+                headers: {
+                    // apiClient setter Authorization, men vi må spesifisere multipart for filopplasting
+                    'Content-Type': 'multipart/form-data' 
                 }
-            );
+            });
             
             // Håndter vellykket respons
             if (onElevatorAdded) {

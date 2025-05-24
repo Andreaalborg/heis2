@@ -3,6 +3,8 @@ import axios from 'axios';
 import AddUserModal from './AddUserModal';
 import UserDetailsModal from './UserDetailsModal';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const Users = () => {
     const [users, setUsers] = useState([]);
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
@@ -21,7 +23,7 @@ const Users = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/users/', {
+            const response = await axios.get(`${API_BASE_URL}/api/users/`, {
                 headers: {
                     'Authorization': `Token ${token}`
                 }
@@ -43,7 +45,7 @@ const Users = () => {
             setError('');
             try {
                 const token = localStorage.getItem('token');
-                await axios.delete(`http://localhost:8000/api/users/${userId}/`, {
+                await axios.delete(`${API_BASE_URL}/api/users/${userId}/`, {
                     headers: {
                         'Authorization': `Token ${token}`
                     }

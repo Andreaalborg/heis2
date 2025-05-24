@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AddEditOpportunityModal from './AddEditOpportunityModal'; // Vi lager denne snart
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const SalesOpportunityList = () => {
     const [opportunities, setOpportunities] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +20,7 @@ const SalesOpportunityList = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/sales-opportunities/', {
+            const response = await axios.get(`${API_BASE_URL}/api/sales-opportunities/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const oppData = response.data.results || response.data; // Håndterer paginering hvis det finnes
@@ -58,7 +60,7 @@ const SalesOpportunityList = () => {
             setIsLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                await axios.delete(`http://localhost:8000/api/sales-opportunities/${id}/`, {
+                await axios.delete(`${API_BASE_URL}/api/sales-opportunities/${id}/`, {
                     headers: { 'Authorization': `Token ${token}` }
                 });
                 fetchOpportunities(); // Hent oppdatert liste

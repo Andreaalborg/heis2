@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Modal from './Modal';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const AddUserModal = ({ isOpen, onClose, onUserSaved, userToEdit }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -181,9 +183,9 @@ const AddUserModal = ({ isOpen, onClose, onUserSaved, userToEdit }) => {
             let response;
 
             if (userToEdit) {
-                response = await axios.patch(`http://localhost:8000/api/users/${userToEdit.id}/`, formData, config);
+                response = await axios.put(`${API_BASE_URL}/api/users/${userToEdit.id}/`, formData, config);
             } else {
-                response = await axios.post('http://localhost:8000/api/users/', formData, config);
+                response = await axios.post(`${API_BASE_URL}/api/users/`, formData, config);
             }
 
             if (response.status === 200 || response.status === 201) {

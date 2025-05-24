@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AddEditAbsenceModal from './AddEditAbsenceModal'; // Lager denne snart
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const AbsenceManagement = () => {
     const [absences, setAbsences] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +20,7 @@ const AbsenceManagement = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/absences/', {
+            const response = await axios.get(`${API_BASE_URL}/api/absences/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const absenceData = response.data.results || response.data;
@@ -58,7 +60,7 @@ const AbsenceManagement = () => {
             setError('');
             try {
                 const token = localStorage.getItem('token');
-                await axios.delete(`http://localhost:8000/api/absences/${id}/`, {
+                await axios.delete(`${API_BASE_URL}/api/absences/${id}/`, {
                     headers: { 'Authorization': `Token ${token}` }
                 });
                 fetchAbsences();

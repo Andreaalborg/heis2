@@ -1,7 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 // Importer CSS-filen
 import '../styles/TechnicianAvailability.css';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import norwegianLocale from '@fullcalendar/core/locales/nb';
+import { Modal, Button, Form, Alert } from 'react-bootstrap';
+import Select from 'react-select';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 // Hjelpefunksjon for å formatere dato til YYYY-MM-DD
 const formatDateISO = (date) => {
@@ -41,22 +50,19 @@ const TechnicianAvailabilityView = () => {
         setError('');
         console.log(`Henter data for ${start} til ${end}`);
 
-        const ASSIGNMENTS_API_URL = 'http://127.0.0.1:8000/api/assignments/';
-        const ABSENCES_API_URL = 'http://127.0.0.1:8000/api/absences/';
-        const USERS_API_URL = 'http://127.0.0.1:8000/api/users/';
+        const token = localStorage.getItem('token');
+        const config = { headers: { 'Authorization': `Token ${token}` } };
+        
+        // Sjekk om start og end er definert før du bruker dem
+        const startDate = start ? start.toISOString().split('T')[0] : null;
+        const endDate = end ? end.toISOString().split('T')[0] : null;
 
-        // Bygger URLer med dato-filtrering (antar backend støtter dette - MÅ VERIFISERES/LEGGES TIL)
-        // Viktig: Backend må kunne filtrere på datoområder for assignments og absences
-        // Eksempel: /api/assignments/?scheduled_date__gte=YYYY-MM-DD&scheduled_date__lte=YYYY-MM-DD
-        // Vi trenger også å hente brukere som er teknikere
-        const assignmentsUrl = `${ASSIGNMENTS_API_URL}?scheduled_date__gte=${start}&scheduled_date__lte=${end}`; 
-        const absencesUrl = `${ABSENCES_API_URL}?end_date__gte=${start}&start_date__lte=${end}`; // Filter for overlapp
-        const usersUrl = `${USERS_API_URL}?role=tekniker`; // Henter kun teknikere
+        // Bygg URLer med dato-filtrering hvis start og end finnes
+        const assignmentsUrl = startDate && endDate ? `${API_BASE_URL}/api/assignments/?start_date=${startDate}&end_date=${endDate}` : `${API_BASE_URL}/api/assignments/`;
+        const absencesUrl = startDate && endDate ? `${API_BASE_URL}/api/absences/?start_date=${startDate}&end_date=${endDate}` : `${API_BASE_URL}/api/absences/`;
+        const usersUrl = `${API_BASE_URL}/api/users/`; // Antar at brukerlisten ikke trenger datofiltrering her
 
         try {
-            const token = localStorage.getItem('token');
-            const config = { headers: { 'Authorization': `Token ${token}` } };
-            
             const [assignmentRes, absenceRes, userRes] = await Promise.all([
                 axios.get(assignmentsUrl, config),
                 axios.get(absencesUrl, config),
@@ -74,7 +80,7 @@ const TechnicianAvailabilityView = () => {
 
         } catch (err) {
             console.error('Feil ved henting av tilgjengelighetsdata:', err.response || err.message);
-            setError('Kunne ikke hente nødvendig data for tilgjengelighet.');
+            setError('Kunne ikke hente nødvendig data for tilgjengelhet.');
             setAssignments([]);
             setAbsences([]);
             setTechnicians([]);

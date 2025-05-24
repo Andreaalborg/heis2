@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom'; // For å lenke til detaljsiden
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const QuoteList = () => {
     const [quotes, setQuotes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -17,7 +19,7 @@ const QuoteList = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/quotes/', {
+            const response = await axios.get(`${API_BASE_URL}/api/quotes/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const quoteData = response.data.results || response.data;
@@ -39,7 +41,7 @@ const QuoteList = () => {
             setError('');
             try {
                 const token = localStorage.getItem('token');
-                await axios.delete(`http://localhost:8000/api/quotes/${quoteId}/`, {
+                await axios.delete(`${API_BASE_URL}/api/quotes/${quoteId}/`, {
                     headers: { 'Authorization': `Token ${token}` }
                 });
                 // Hent listen på nytt for å reflektere slettingen

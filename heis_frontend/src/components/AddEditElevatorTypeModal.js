@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Modal from './Modal';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const AddEditElevatorTypeModal = ({ isOpen, onClose, onSave, typeToEdit }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -44,13 +46,13 @@ const AddEditElevatorTypeModal = ({ isOpen, onClose, onSave, typeToEdit }) => {
             let response;
 
             if (typeToEdit && typeToEdit.id) {
-                response = await axios.put(`http://localhost:8000/api/elevator-types/${typeToEdit.id}/`, typeData, config);
+                response = await axios.put(`${API_BASE_URL}/api/elevator-types/${typeToEdit.id}/`, typeData, config);
             } else {
-                response = await axios.post('http://localhost:8000/api/elevator-types/', typeData, config);
+                response = await axios.post(`${API_BASE_URL}/api/elevator-types/`, typeData, config);
             }
 
             if (response.status === 200 || response.status === 201) {
-                onSave();
+                onSave(response.data);
             } else {
                 setError('Noe gikk galt ved lagring.');
             }

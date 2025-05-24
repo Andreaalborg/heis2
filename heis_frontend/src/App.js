@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 // Komponenter
@@ -30,8 +30,9 @@ import './App.css';
 // Font Awesome ikoner
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
-// Definer API base URL fra miljøvariabel, med fallback for utvikling
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+const AuthContext = createContext(null);
 
 // Tilgangskontroll-komponent
 const ProtectedRoute = ({ children, allowedRoles }) => {

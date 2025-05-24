@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -12,6 +12,10 @@ import resourceDayGridPlugin from '@fullcalendar/resource-daygrid';
 import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import AddAssignmentModal from './AddAssignmentModal'; 
 import '../styles/AssignmentCalendar.css'; // Custom styles for the calendar if needed
+import { Modal, Button, Form, Alert, Dropdown } from 'react-bootstrap';
+import Select from 'react-select'; // Bruker react-select for bedre brukeropplevelse
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 // Funksjon for å få farge basert på status
 const getStatusColor = (status) => {
@@ -48,39 +52,54 @@ const AssignmentCalendar = () => {
         console.error("Kunne ikke parse brukerdata fra localStorage", e);
     }
 
-    const ASSIGNMENTS_API_URL = 'http://127.0.0.1:8000/api/assignments/';
-    const ABSENCES_API_URL = 'http://127.0.0.1:8000/api/absences/';
-    const USERS_API_URL = 'http://127.0.0.1:8000/api/users/'; // URL for brukere
-
-    // Henter oppdrag, fravær OG brukere
-    const fetchDataForCalendar = async () => {
+    const fetchEvents = useCallback(async (fetchInfo) => {
         setIsLoading(true);
         setError(null);
         
-        let assignmentsUrl = ASSIGNMENTS_API_URL;
-        if (userRole === 'tekniker' && userId) {
-            assignmentsUrl += `?assigned_to=${userId}`;
+        const token = localStorage.getItem('token');
+        const config = {
+            headers: { 'Authorization': `Token ${token}` }
+        };
+
+        // Formater datoer for API-kall hvis fetchInfo er tilgjengelig
+        const startDate = fetchInfo && fetchInfo.startStr ? fetchInfo.startStr.split('T')[0] : null;
+        const endDate = fetchInfo && fetchInfo.endStr ? fetchInfo.endStr.split('T')[0] : null;
+
+        let assignmentsUrl = `${API_BASE_URL}/api/assignments/`;
+        let absencesUrl = `${API_BASE_URL}/api/absences/`;
+        const usersUrl = `${API_BASE_URL}/api/users/`; // Brukere hentes alltid fullt ut for ressursvisning
+
+        // Bygg query-parametre for datoer hvis de finnes
+        const dateParams = [];
+        if (startDate) dateParams.push(`start_date=${startDate}`);
+        if (endDate) dateParams.push(`end_date=${endDate}`);
+        const queryParams = dateParams.join('&');
+
+        if (queryParams) {
+            assignmentsUrl += `?${queryParams}`;
+            absencesUrl += `?${queryParams}`;
         }
         
-        let absencesUrl = ABSENCES_API_URL;
-        // TODO: Vurder å filtrere fravær også for tekniker?
-        
-        // Henter alle brukere for ressurslisten (kan filtreres senere)
-        let usersUrl = USERS_API_URL; 
+        // Hvis brukerrollen er tekniker og vi har en userId, filtrer oppdrag på den teknikeren
+        // Dette overstyrer eventuelle datofiltre for oppdrag hvis begge er satt, 
+        // eller legges til hvis ingen datofiltre er satt.
+        if (userRole === 'tekniker' && userId) {
+            assignmentsUrl = `${API_BASE_URL}/api/assignments/?assigned_to=${userId}`;
+            // Hvis vi også har datofiltre, kan vi legge dem til:
+            // if (queryParams) assignmentsUrl += `&${queryParams}`; 
+            // For nå, la oss prioritere assigned_to filteret for teknikere.
+        }
 
         try {
-            const token = localStorage.getItem('token');
-            const config = { headers: { 'Authorization': `Token ${token}` } };
-            
             // Utfør ALLE API-kallene parallelt
-            const [assignmentRes, absenceRes, userRes] = await Promise.all([
+            const [assignmentsRes, absencesRes, usersRes] = await Promise.all([
                 axios.get(assignmentsUrl, config),
                 axios.get(absencesUrl, config),
                 axios.get(usersUrl, config) // Henter brukere
             ]);
 
             // Behandle brukere -> Ressurser
-            const users = userRes.data.results || userRes.data;
+            const users = usersRes.data.results || usersRes.data;
             const formattedResources = users.map(user => ({
                 id: user.id.toString(), // Ressurs-ID må være streng
                 title: user.username // Viser brukernavn i ressurskolonnen
@@ -89,7 +108,7 @@ const AssignmentCalendar = () => {
             setResources(formattedResources);
 
             // Behandle oppdrag (legger til resourceId og farge)
-            const assignments = assignmentRes.data.results || assignmentRes.data;
+            const assignments = assignmentsRes.data.results || assignmentsRes.data;
             const formattedAssignmentEvents = assignments
                 .filter(a => a.assigned_to && a.scheduled_date) // Vis kun tildelte OG planlagte
                 .map(assignment => ({
@@ -107,7 +126,7 @@ const AssignmentCalendar = () => {
             setAssignmentEvents(formattedAssignmentEvents);
 
             // Behandle fravær (legger til resourceId)
-            const absences = absenceRes.data.results || absenceRes.data;
+            const absences = absencesRes.data.results || absencesRes.data;
             const formattedAbsenceEvents = absences.map(absence => ({
                 id: `absence_${absence.id}`,
                 resourceId: absence.user.toString(), // Kobler til bruker
@@ -131,7 +150,7 @@ const AssignmentCalendar = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     // Hjelpefunksjon for å legge til en dag (for FullCalendar allDay end date)
     const addOneDay = (dateString) => {
@@ -148,8 +167,8 @@ const AssignmentCalendar = () => {
 
     // Hent data når komponenten lastes
     useEffect(() => {
-        fetchDataForCalendar();
-    }, [userRole, userId]); // Endret fetch-funksjon
+        fetchEvents();
+    }, [userRole, userId, fetchEvents]); // Endret fetch-funksjon
 
     // Åpne modal for redigering når et event klikkes
     const handleEventClick = (clickInfo) => {
@@ -177,7 +196,7 @@ const AssignmentCalendar = () => {
     // Lukk modal og hent data på nytt ved lagring
     const handleAssignmentSaved = () => {
         setIsModalOpen(false);
-        fetchDataForCalendar(); // Hent all data på nytt
+        fetchEvents(); // Hent all data på nytt
     };
 
     // Funksjon for å rendre innholdet i event-blokkene

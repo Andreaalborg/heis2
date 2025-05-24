@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// import axios from 'axios'; // Fjernes
+import apiClient from '../api'; // <--- IMPORTER APIKLIENTEN
 import Modal from './Modal';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const AddCustomerModal = ({ isOpen, onClose, onCustomerAdded }) => {
     const [name, setName] = useState('');
@@ -24,12 +27,14 @@ const AddCustomerModal = ({ isOpen, onClose, onCustomerAdded }) => {
     const fetchUsers = async () => {
         setLoadingUsers(true);
         try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/users/', {
-                headers: {
-                    'Authorization': `Token ${token}`
-                }
-            });
+            // Token håndteres av apiClient
+            // const token = localStorage.getItem('token');
+            // const response = await axios.get('http://localhost:8000/api/users/', {
+            //     headers: {
+            //         'Authorization': `Token ${token}`
+            //     }
+            // });
+            const response = await apiClient.get('/api/users/'); // <--- ENDRET
             setUsers(response.data.results || response.data);
         } catch (err) {
             console.error('Feil ved henting av brukere:', err);
@@ -49,8 +54,10 @@ const AddCustomerModal = ({ isOpen, onClose, onCustomerAdded }) => {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await axios.post('http://localhost:8000/api/customers/', {
+            // Token håndteres av apiClient
+            // const token = localStorage.getItem('token');
+            // const response = await axios.post('http://localhost:8000/api/customers/', {
+            const response = await apiClient.post('/api/customers/', { // <--- ENDRET
                 name,
                 contact_person_user: contactPersonId, // Send bruker ID som contact_person_user
                 email,
@@ -58,11 +65,12 @@ const AddCustomerModal = ({ isOpen, onClose, onCustomerAdded }) => {
                 address,
                 zip_code: zipCode,
                 city
-            }, {
-                headers: {
-                    'Authorization': `Token ${token}`
-                }
-            });
+            }); // Fjerner manuell config, apiClient håndterer token
+            // }, {
+            //     headers: {
+            //         'Authorization': `Token ${token}`
+            //     }
+            // });
 
             if (response.status === 201) {
                 onCustomerAdded(response.data);

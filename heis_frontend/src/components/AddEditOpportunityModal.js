@@ -3,6 +3,8 @@ import axios from 'axios';
 import Modal from './Modal'; // Gjenbruker den generiske Modal-komponenten
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const AddEditOpportunityModal = ({ isOpen, onClose, onSave, opportunityToEdit }) => {
     const [name, setName] = useState('');
     const [customerId, setCustomerId] = useState('');
@@ -54,7 +56,7 @@ const AddEditOpportunityModal = ({ isOpen, onClose, onSave, opportunityToEdit })
         setIsLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/customers/', {
+            const response = await axios.get(`${API_BASE_URL}/api/customers/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const customerData = response.data.results || response.data;
@@ -88,14 +90,14 @@ const AddEditOpportunityModal = ({ isOpen, onClose, onSave, opportunityToEdit })
 
             if (opportunityToEdit && opportunityToEdit.id) {
                 // Oppdater eksisterende
-                response = await axios.put(`http://localhost:8000/api/sales-opportunities/${opportunityToEdit.id}/`, opportunityData, config);
+                response = await axios.put(`${API_BASE_URL}/api/sales-opportunities/${opportunityToEdit.id}/`, opportunityData, config);
             } else {
                 // Legg til ny
-                response = await axios.post('http://localhost:8000/api/sales-opportunities/', opportunityData, config);
+                response = await axios.post(`${API_BASE_URL}/api/sales-opportunities/`, opportunityData, config);
             }
 
             if (response.status === 200 || response.status === 201) {
-                onSave(); // Kall onSave callback (som lukker modal og henter listen på nytt)
+                onSave(response.data); // Send tilbake den lagrede muligheten
             } else {
                  setError('Noe gikk galt ved lagring.');
             }
@@ -116,7 +118,7 @@ const AddEditOpportunityModal = ({ isOpen, onClose, onSave, opportunityToEdit })
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post('http://localhost:8000/api/quotes/', 
+            const response = await axios.post(`${API_BASE_URL}/api/quotes/`, 
                 { opportunity: opportunityToEdit.id }, // Send kun opportunity ID
                 { headers: { 'Authorization': `Token ${token}` } }
             );

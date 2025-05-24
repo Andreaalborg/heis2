@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import apiClient from '../api';
 import { Link } from 'react-router-dom';
 import '../styles/Dashboard.css';
 
@@ -28,17 +28,9 @@ const Dashboard = () => {
         { value: 'fakturert', label: 'Fakturert' },
     ];
 
-    // Flytt fetchDashboardData ut hit
     const fetchDashboardData = async () => {
         setIsLoading(true);
         setError(null);
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-            setIsLoading(false);
-            setError("Ingen gyldig token funnet. Prøv å logge inn på nytt.");
-            return;
-        }
         
         let currentUserInfo = null;
         try {
@@ -48,12 +40,10 @@ const Dashboard = () => {
                 setUserInfo(currentUserInfo);
             }
             
-            const config = { headers: { 'Authorization': `Token ${token}` } };
-
             const [customerRes, userRes, assignmentRes] = await Promise.all([
-                axios.get('http://localhost:8000/api/customers/', config),
-                axios.get('http://localhost:8000/api/users/', config),
-                axios.get('http://localhost:8000/api/assignments/?ordering=scheduled_date,scheduled_time', config)
+                apiClient.get('/api/customers/'),
+                apiClient.get('/api/users/'),
+                apiClient.get('/api/assignments/?ordering=scheduled_date,scheduled_time')
             ]);
 
             const customerMap = (customerRes.data.results || customerRes.data).reduce((acc, customer) => {
@@ -85,9 +75,8 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        // Kall funksjonen ved første lasting
         fetchDashboardData();
-    }, []); // Tom dependency array sikrer at den kun kjører én gang ved mount
+    }, []);
 
     const calculateStats = (assignments, currentUser) => {
         const now = new Date();
@@ -145,7 +134,6 @@ const Dashboard = () => {
 
     const getStatusLabel = (value) => statusChoices.find(s => s.value === value)?.label || value;
 
-    // Datofunksjoner (lik Assignments.js)
     const formatDate = (dateString) => {
         if (!dateString) return '-';
         try {

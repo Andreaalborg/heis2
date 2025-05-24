@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import apiClient from '../api'; // <--- IMPORTER APIKLIENTEN
 import AddAssignmentModal from './AddAssignmentModal';
 import ElevatorProcedureModal from './ElevatorProcedureModal';
 
@@ -17,9 +18,8 @@ function Assignments() {
   const [isProcedureModalOpen, setIsProcedureModalOpen] = useState(false);
   const [selectedAssignmentForProcedure, setSelectedAssignmentForProcedure] = useState(null);
 
-  const API_URL = 'http://127.0.0.1:8000/api/assignments/';
-  const CUSTOMERS_API_URL = 'http://127.0.0.1:8000/api/customers/';
-  const USERS_API_URL = 'http://127.0.0.1:8000/api/users/';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+  const API_URL = `${API_BASE_URL}/api/assignments/`;
 
   const statusChoices = [
       { value: 'pending', label: 'Venter' },
@@ -41,8 +41,8 @@ function Assignments() {
 
         const [assignmentRes, customerRes, userRes] = await Promise.all([
             axios.get(API_URL, config),
-            axios.get(CUSTOMERS_API_URL, config),
-            axios.get(USERS_API_URL, config)
+            axios.get('/api/customers/', config),
+            axios.get('/api/users/', config)
         ]);
 
         setAssignments(assignmentRes.data.results || assignmentRes.data);
@@ -65,7 +65,9 @@ function Assignments() {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get(API_URL, {
-          headers: { 'Authorization': `Token ${token}` }
+          headers: {
+            'Authorization': `Token ${token}`,
+          },
         });
         setAssignments(response.data.results || response.data);
       } catch (err) {
@@ -84,8 +86,11 @@ function Assignments() {
       
       try {
         const token = localStorage.getItem('token');
-        const config = { headers: { 'Authorization': `Token ${token}` } };
-        await axios.delete(`${API_URL}${id}/`, config);
+        await axios.delete(`${API_URL}${id}/`, {
+          headers: {
+            'Authorization': `Token ${token}`,
+          },
+        });
       } catch (err) {
         setError('Kunne ikke slette oppdrag. Prøv å laste siden på nytt.');
         console.error("Delete Assignment Error:", err);

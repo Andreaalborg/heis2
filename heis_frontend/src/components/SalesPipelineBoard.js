@@ -17,6 +17,8 @@ const pipelineColumns = [
 // Helper for å få tak i auth token
 const getToken = () => localStorage.getItem('token');
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const SalesPipelineBoard = () => {
     const [opportunitiesByStatus, setOpportunitiesByStatus] = useState({});
     const [allOpportunities, setAllOpportunities] = useState([]);
@@ -61,7 +63,7 @@ const SalesPipelineBoard = () => {
     const fetchCustomers = async () => {
         try {
             const token = getToken();
-            const response = await axios.get('http://localhost:8000/api/customers/', {
+            const response = await axios.get(`${API_BASE_URL}/api/customers/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const customerData = response.data.results || response.data;
@@ -76,7 +78,7 @@ const SalesPipelineBoard = () => {
         setError('');
         try {
             const token = getToken();
-            const response = await axios.get('http://localhost:8000/api/sales-opportunities/', {
+            const response = await axios.get(`${API_BASE_URL}/api/sales-opportunities/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const opportunities = response.data.results || response.data;
@@ -229,7 +231,7 @@ const SalesPipelineBoard = () => {
         // Send PATCH-forespørsel til API
         try {
             const token = getToken();
-            await axios.patch(`http://localhost:8000/api/sales-opportunities/${opportunityId}/`, 
+            await axios.patch(`${API_BASE_URL}/api/sales-opportunities/${opportunityId}/`, 
                 { status: endColumnId }, // Send kun statusendringen
                 { headers: { 'Authorization': `Token ${token}` } }
             );

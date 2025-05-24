@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useParams, Link } from 'react-router-dom';
 import AddAssignmentModal from './AddAssignmentModal'; // Importer modal for oppdrag
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const OrderDetailView = () => {
     const { orderId } = useParams(); // Henter orderId fra URL
     const [order, setOrder] = useState(null);
@@ -47,7 +49,7 @@ const OrderDetailView = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://localhost:8000/api/orders/${orderId}/`, {
+            const response = await axios.get(`${API_BASE_URL}/api/orders/${orderId}/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             setOrder(response.data);
@@ -79,7 +81,7 @@ const OrderDetailView = () => {
                 status: editableOrderData.status,
                 notes: editableOrderData.notes,
             };
-            await axios.patch(`http://localhost:8000/api/orders/${orderId}/`, dataToSave, {
+            await axios.patch(`${API_BASE_URL}/api/orders/${orderId}/`, dataToSave, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             fetchOrderDetails(false); 

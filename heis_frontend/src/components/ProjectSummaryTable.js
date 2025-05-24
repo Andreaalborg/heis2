@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const ProjectSummaryTable = () => {
     const [summaryData, setSummaryData] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +18,7 @@ const ProjectSummaryTable = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/project-summary/', {
+            const response = await axios.get(`${API_BASE_URL}/api/project-summary/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const data = response.data.results || response.data;

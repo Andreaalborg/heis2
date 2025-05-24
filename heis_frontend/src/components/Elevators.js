@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../api';
 import { Link } from 'react-router-dom';
 import ElevatorDetailsModal from './ElevatorDetailsModal';
 import AddElevatorModal from './AddElevatorModal';
+import axios from 'axios';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const Elevators = () => {
     const [elevators, setElevators] = useState([]);
@@ -22,26 +25,32 @@ const Elevators = () => {
             setError('');
             try {
                 const token = localStorage.getItem('token');
+                const config = { headers: { 'Authorization': `Token ${token}` } };
                 
                 // Hent heiser
-                const elevatorsResponse = await axios.get('http://localhost:8000/api/elevators/', {
-                    headers: { 'Authorization': `Token ${token}` }
-                });
+                // const elevatorsResponse = await axios.get('http://localhost:8000/api/elevators/', config);
+                const elevatorsResponse = await axios.get(`${API_BASE_URL}/api/elevators/`, config);
                 
                 // Hent kunder for referanse
-                const customersResponse = await axios.get('http://localhost:8000/api/customers/', {
-                    headers: { 'Authorization': `Token ${token}` }
-                });
+                // const customersResponse = await axios.get('http://localhost:8000/api/customers/', config);
+                const customersResponse = await axios.get(`${API_BASE_URL}/api/customers/`, config);
+                const customersData = customersResponse.data.reduce((acc, customer) => {
+                    acc.push(customer);
+                    return acc;
+                }, []);
                 
                 // Hent heistyper for referanse
-                const typesResponse = await axios.get('http://localhost:8000/api/elevator-types/', {
-                    headers: { 'Authorization': `Token ${token}` }
-                });
+                // const typesResponse = await axios.get('http://localhost:8000/api/elevator-types/', config);
+                const typesResponse = await axios.get(`${API_BASE_URL}/api/elevator-types/`, config);
+                const typesData = typesResponse.data.reduce((acc, type) => {
+                    acc.push(type);
+                    return acc;
+                }, []);
                 
                 // Sett data i state
                 setElevators(elevatorsResponse.data.results || elevatorsResponse.data);
-                setCustomers(customersResponse.data.results || customersResponse.data);
-                setElevatorTypes(typesResponse.data.results || typesResponse.data);
+                setCustomers(customersData);
+                setElevatorTypes(typesData);
                 
                 setLoading(false);
             } catch (err) {

@@ -4,6 +4,8 @@ import Modal from './Modal';
 
 // Mottar quoteId for å vite hvilket tilbud linjen tilhører
 // lineToEdit vil bli brukt senere for redigering
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const AddEditQuoteLineModal = ({ isOpen, onClose, onSave, quoteId, lineToEdit }) => {
     // Fjerner description og unitPrice state, legger til elevatorTypeId
     const [elevatorTypeId, setElevatorTypeId] = useState('');
@@ -34,11 +36,10 @@ const AddEditQuoteLineModal = ({ isOpen, onClose, onSave, quoteId, lineToEdit })
         setIsLoading(true); 
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/elevator-types/', {
+            const response = await axios.get(`${API_BASE_URL}/api/elevator-types/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
-            const typesData = response.data.results || response.data;
-            setElevatorTypes(Array.isArray(typesData) ? typesData : []);
+            setElevatorTypes(response.data.results || response.data); // Håndterer paginering hvis det finnes
         } catch (err) {
             console.error("Feil ved henting av heistyper:", err);
             setError('Kunne ikke laste heistyper.');
@@ -74,14 +75,14 @@ const AddEditQuoteLineModal = ({ isOpen, onClose, onSave, quoteId, lineToEdit })
 
             if (lineToEdit && lineToEdit.id) {
                  // Oppdater eksisterende linje
-                response = await axios.put(`http://localhost:8000/api/quote-line-items/${lineToEdit.id}/`, lineData, config);
+                response = await axios.put(`${API_BASE_URL}/api/quote-line-items/${lineToEdit.id}/`, lineData, config);
             } else {
                 // Legg til ny linje
-                response = await axios.post('http://localhost:8000/api/quote-line-items/', lineData, config);
+                response = await axios.post(`${API_BASE_URL}/api/quote-line-items/`, lineData, config);
             }
 
             if (response.status === 201 || response.status === 200) { 
-                onSave();
+                onSave(response.data);
             } else {
                 setError('Noe gikk galt ved lagring av linje.');
             }

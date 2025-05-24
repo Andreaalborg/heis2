@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import AddEditQuoteLineModal from './AddEditQuoteLineModal';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const QuoteDetailView = () => {
     const { quoteId } = useParams(); // Henter quoteId fra URL
     const [quote, setQuote] = useState(null);
@@ -44,7 +46,7 @@ const QuoteDetailView = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://localhost:8000/api/quotes/${quoteId}/`, {
+            const response = await axios.get(`${API_BASE_URL}/api/quotes/${quoteId}/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             setQuote(response.data);
@@ -79,20 +81,17 @@ const QuoteDetailView = () => {
     };
 
     // Slett linjeelement
-    const handleDeleteLineItem = async (lineId) => {
-        if (window.confirm('Er du sikker på at du vil slette denne tilbudslinjen?')) {
-            setIsLoading(true); // Kan bruke egen state for linjesletting
-            setError('');
+    const handleDeleteLineItem = async (lineItemId) => {
+        if (window.confirm('Er du sikker på at du vil slette denne linjen?')) {
             try {
                 const token = localStorage.getItem('token');
-                await axios.delete(`http://localhost:8000/api/quote-line-items/${lineId}/`, {
+                await axios.delete(`${API_BASE_URL}/api/quote-line-items/${lineItemId}/`, {
                     headers: { 'Authorization': `Token ${token}` }
                 });
-                fetchQuoteDetails(); // Hent oppdaterte tilbudsdata
+                fetchQuoteDetails(); // Refresh quote details
             } catch (err) {
                 console.error('Feil ved sletting av tilbudslinje:', err.response || err.message);
                 setError('Kunne ikke slette tilbudslinjen.');
-                setIsLoading(false); // Slår av loading ved feil, ellers styres det av fetch
             }
         }
     };
@@ -118,7 +117,7 @@ const QuoteDetailView = () => {
                 notes: editableQuoteData.notes,
                 customer_notes: editableQuoteData.customer_notes
             };
-            await axios.patch(`http://localhost:8000/api/quotes/${quoteId}/`, dataToSave, {
+            await axios.patch(`${API_BASE_URL}/api/quotes/${quoteId}/`, dataToSave, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             // Hent oppdaterte data etter lagring (uten full loading-skjerm)
@@ -142,7 +141,7 @@ const QuoteDetailView = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            await axios.patch(`http://localhost:8000/api/quotes/${quoteId}/`, 
+            await axios.patch(`${API_BASE_URL}/api/quotes/${quoteId}/`, 
                 { status: newStatus }, // Send kun den nye statusen
                 { headers: { 'Authorization': `Token ${token}` } }
             );
@@ -171,7 +170,7 @@ const QuoteDetailView = () => {
         try {
             const token = localStorage.getItem('token');
             // Kaller det nye custom action-endepunktet
-            const response = await axios.post(`http://localhost:8000/api/quotes/${quoteId}/create-order/`, 
+            const response = await axios.post(`${API_BASE_URL}/api/quotes/${quoteId}/create-order/`, 
                 {}, // Ingen data trengs i body
                 { headers: { 'Authorization': `Token ${token}` } }
             );
@@ -222,7 +221,7 @@ const QuoteDetailView = () => {
                  <h1>Tilbud: {quote.quote_number || `ID ${quote.id}`}</h1>
                  {/* PDF-knapp */} 
                  <a 
-                    href={`http://localhost:8000/api/quotes/${quoteId}/pdf/`} 
+                    href={`${API_BASE_URL}/api/quotes/${quoteId}/pdf/`} 
                     className="btn btn-secondary"
                     target="_blank" // Åpner i ny fane/trigger nedlasting
                     rel="noopener noreferrer"

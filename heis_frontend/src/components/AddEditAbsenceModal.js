@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Modal from './Modal';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const AddEditAbsenceModal = ({ isOpen, onClose, onSave, absenceToEdit }) => {
     const [userId, setUserId] = useState('');
     const [startDate, setStartDate] = useState('');
@@ -50,11 +52,10 @@ const AddEditAbsenceModal = ({ isOpen, onClose, onSave, absenceToEdit }) => {
         setIsLoading(true); // Bruker samme loading-state
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/users/', {
+            const response = await axios.get(`${API_BASE_URL}/api/users/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
-            const userData = response.data.results || response.data;
-            setUsers(Array.isArray(userData) ? userData : []);
+            setUsers(response.data.results || response.data);
         } catch (err) {
             console.error("Feil ved henting av brukere:", err);
             setError('Kunne ikke laste brukerliste.');
@@ -96,9 +97,9 @@ const AddEditAbsenceModal = ({ isOpen, onClose, onSave, absenceToEdit }) => {
             let response;
 
             if (absenceToEdit && absenceToEdit.id) {
-                response = await axios.put(`http://localhost:8000/api/absences/${absenceToEdit.id}/`, absenceData, config);
+                response = await axios.put(`${API_BASE_URL}/api/absences/${absenceToEdit.id}/`, absenceData, config);
             } else {
-                response = await axios.post('http://localhost:8000/api/absences/', absenceData, config);
+                response = await axios.post(`${API_BASE_URL}/api/absences/`, absenceData, config);
             }
 
             if (response.status === 200 || response.status === 201) {

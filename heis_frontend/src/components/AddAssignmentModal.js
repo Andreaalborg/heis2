@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// import axios from 'axios'; // Fjernes
+import apiClient from '../api'; // <--- IMPORTER APIKLIENTEN
 import Modal from './Modal';
 
 const AddAssignmentModal = ({ isOpen, onClose, onAssignmentSaved, assignmentToEdit, initialData }) => {
@@ -25,10 +26,11 @@ const AddAssignmentModal = ({ isOpen, onClose, onAssignmentSaved, assignmentToEd
     const [users, setUsers] = useState([]);
     const [loadingSelects, setLoadingSelects] = useState(false);
 
-    const API_URL = 'http://127.0.0.1:8000/api/assignments/';
-    const CUSTOMERS_API_URL = 'http://127.0.0.1:8000/api/customers/';
-    const ELEVATORS_API_URL = 'http://127.0.0.1:8000/api/elevators/';
-    const USERS_API_URL = 'http://127.0.0.1:8000/api/users/';
+    // Fjern hardkodede URL-er
+    // const API_URL = 'http://127.0.0.1:8000/api/assignments/';
+    // const CUSTOMERS_API_URL = 'http://127.0.0.1:8000/api/customers/';
+    // const ELEVATORS_API_URL = 'http://127.0.0.1:8000/api/elevators/';
+    // const USERS_API_URL = 'http://127.0.0.1:8000/api/users/';
 
     const assignmentTypeChoices = [
         { value: 'installation', label: 'Installasjon' },
@@ -51,13 +53,14 @@ const AddAssignmentModal = ({ isOpen, onClose, onAssignmentSaved, assignmentToEd
             setLoadingSelects(true);
             setError('');
             try {
-                const token = localStorage.getItem('token');
-                const config = { headers: { 'Authorization': `Token ${token}` } };
+                // Token håndteres av apiClient
+                // const token = localStorage.getItem('token');
+                // const config = { headers: { 'Authorization': `Token ${token}` } };
                 
                 const [customerRes, elevatorRes, userRes] = await Promise.all([
-                    axios.get(CUSTOMERS_API_URL, config),
-                    axios.get(ELEVATORS_API_URL, config),
-                    axios.get(USERS_API_URL, config)
+                    apiClient.get('/api/customers/'), // <--- ENDRET
+                    apiClient.get('/api/elevators/'), // <--- ENDRET
+                    apiClient.get('/api/users/') // <--- ENDRET
                 ]);
     
                 console.log("Raw Elevator API Response:", elevatorRes.data); // Log rådata for heiser
@@ -244,21 +247,24 @@ const AddAssignmentModal = ({ isOpen, onClose, onAssignmentSaved, assignmentToEd
 
         console.log("Sender oppdragsdata:", assignmentData);
 
-        const token = localStorage.getItem('token');
-        const config = {
-            headers: {
-                'Authorization': `Token ${token}`,
-                'Content-Type': 'application/json'
-            }
-        };
+        // Token og Content-Type håndteres nå av apiClient (Content-Type settes vanligvis automatisk for JSON)
+        // const token = localStorage.getItem('token');
+        // const config = {
+        //     headers: {
+        //         'Authorization': `Token ${token}`,
+        //         'Content-Type': 'application/json'
+        //     }
+        // };
 
         try {
             const isEditing = !!assignmentToEdit;
 
             if (isEditing) {
-                await axios.put(`${API_URL}${assignmentToEdit.id}/`, assignmentData, config);
+                // await axios.put(`${API_URL}${assignmentToEdit.id}/`, assignmentData, config);
+                await apiClient.put(`/api/assignments/${assignmentToEdit.id}/`, assignmentData); // <--- ENDRET
             } else {
-                await axios.post(API_URL, assignmentData, config);
+                // await axios.post(API_URL, assignmentData, config);
+                await apiClient.post('/api/assignments/', assignmentData); // <--- ENDRET
             }
             
             onAssignmentSaved();

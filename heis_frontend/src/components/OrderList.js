@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const OrderList = () => {
     const [orders, setOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +18,7 @@ const OrderList = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/orders/', {
+            const response = await axios.get(`${API_BASE_URL}/api/orders/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const orderData = response.data.results || response.data;

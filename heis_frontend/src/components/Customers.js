@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import apiClient from '../api'; // <--- IMPORTER APIKLIENTEN
 import AddCustomerModal from './AddCustomerModal';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const Customers = () => {
     const [customers, setCustomers] = useState([]);
@@ -17,7 +20,7 @@ const Customers = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/customers/', {
+            const response = await axios.get(`${API_BASE_URL}/api/customers/`, {
                 headers: {
                     'Authorization': `Token ${token}`
                 }

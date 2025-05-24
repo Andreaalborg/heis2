@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/SalesFollowUpPlanner.css';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const SalesFollowUpPlanner = () => {
     const [opportunities, setOpportunities] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +68,7 @@ const SalesFollowUpPlanner = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/sales-opportunities/', {
+            const response = await axios.get(`${API_BASE_URL}/api/sales-opportunities/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const fetchedData = response.data.results || response.data;
@@ -83,8 +85,7 @@ const SalesFollowUpPlanner = () => {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('token');
-            // Dette er et eksempel - endepunktet må implementeres i backend
-            const response = await axios.get(`http://localhost:8000/api/sales-opportunities/${opportunityId}/follow-up-tasks/`, {
+            const response = await axios.get(`${API_BASE_URL}/api/sales-opportunities/${opportunityId}/follow-up-tasks/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             const fetchedTasks = response.data.results || response.data;
@@ -131,8 +132,7 @@ const SalesFollowUpPlanner = () => {
 
         try {
             const token = localStorage.getItem('token');
-            // Dette er et eksempel - endepunktet må implementeres i backend
-            const response = await axios.post(`http://localhost:8000/api/sales-follow-up-tasks/`, taskData, {
+            const response = await axios.post(`${API_BASE_URL}/api/sales-follow-up-tasks/`, taskData, {
                 headers: { 'Authorization': `Token ${token}` }
             });
 
@@ -185,8 +185,7 @@ const SalesFollowUpPlanner = () => {
     const handleToggleTaskComplete = async (taskId, currentStatus) => {
         try {
             const token = localStorage.getItem('token');
-            // Dette er et eksempel - endepunktet må implementeres i backend
-            await axios.patch(`http://localhost:8000/api/sales-follow-up-tasks/${taskId}/`, 
+            const response = await axios.patch(`${API_BASE_URL}/api/sales-follow-up-tasks/${taskId}/`, 
                 { completed: !currentStatus },
                 { headers: { 'Authorization': `Token ${token}` } }
             );
@@ -213,8 +212,7 @@ const SalesFollowUpPlanner = () => {
         
         try {
             const token = localStorage.getItem('token');
-            // Dette er et eksempel - endepunktet må implementeres i backend
-            await axios.delete(`http://localhost:8000/api/sales-follow-up-tasks/${taskId}/`, {
+            const response = await axios.delete(`${API_BASE_URL}/api/sales-follow-up-tasks/${taskId}/`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
             
