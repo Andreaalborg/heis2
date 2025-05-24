@@ -87,7 +87,7 @@ export const useAuth = () => {
     return context;
 };
 
-const Auth = ({ setIsAuthenticated }) => {
+const Auth = () => {
     const { username, password, error, isLoading, isAuthenticated, userData, setUsername, setPassword, setError, setIsLoading, setIsAuthenticated, setUserData } = useAuth();
     const navigate = useNavigate();
 
