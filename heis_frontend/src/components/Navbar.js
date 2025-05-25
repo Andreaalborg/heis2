@@ -1,10 +1,38 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-// import '../styles/Navbar.css'; // Fjerner denne for å unngå konflikter
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import MenuIcon from '@mui/icons-material/Menu';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Divider from '@mui/material/Divider';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Tooltip from '@mui/material/Tooltip';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import PeopleIcon from '@mui/icons-material/People';
+import CategoryIcon from '@mui/icons-material/Category';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import BusinessIcon from '@mui/icons-material/Business';
+import ElevatorIcon from '@mui/icons-material/KeyboardArrowUp';
+import HandshakeIcon from '@mui/icons-material/Handshake';
+import PipelineIcon from '@mui/icons-material/Timeline';
+import FollowUpIcon from '@mui/icons-material/Checklist';
+import ReceiptIcon from '@mui/icons-material/ReceiptLong';
+import InventoryIcon from '@mui/icons-material/Inventory2';
+import AvailabilityIcon from '@mui/icons-material/EventAvailable';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 // Mottar userRole og den sentraliserte handleAuthentication-funksjonen som setIsAuthenticated
 const Navbar = ({ isAuthenticated, setIsAuthenticated, userRole }) => {
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     
@@ -12,23 +40,9 @@ const Navbar = ({ isAuthenticated, setIsAuthenticated, userRole }) => {
         // Kall handleAuthentication i App.js for å logge ut (setter state og fjerner localStorage)
         setIsAuthenticated(false); // App.js' handleAuthentication håndterer localStorage
         navigate('/login');
-        setMobileMenuOpen(false); // Lukk menyen ved utlogging
+        setDrawerOpen(false); // Lukk menyen ved utlogging
     };
     
-    const toggleMobileMenu = () => {
-        setMobileMenuOpen(!mobileMenuOpen);
-    };
-    
-    const closeMobileMenu = () => {
-        setMobileMenuOpen(false);
-    };
-    
-    // Navbar rendres kun hvis bruker er autentisert (styres fra App.js)
-    if (!isAuthenticated) {
-        return null;
-    }
-    
-    // Funksjon for å sjekke om en sti er aktiv
     const isActive = (path) => {
         // Markerer dashboard som aktivt kun hvis stien er eksakt den.
         if (path === '/dashboard' || path === '/tekniker-dashboard' || path === '/selger-dashboard') {
@@ -48,254 +62,190 @@ const Navbar = ({ isAuthenticated, setIsAuthenticated, userRole }) => {
         }
     };
 
-    // Bygger menyvalgene basert på rolle
-    const renderMenuItems = () => {
-        const menuItems = [];
-        const dashboardPath = getDashboardPath();
-
-        // Legg alltid til Dashboard-lenke
-        menuItems.push(
-            <Link 
-                key="dashboard" 
-                to={dashboardPath} 
-                className={`navbar-item ${isActive(dashboardPath) ? 'is-active' : ''}`}
-                onClick={closeMobileMenu}
-            >
-                <span className="icon-text">
-                    <span className="icon"><i className="fas fa-tachometer-alt"></i></span>
-                    <span>Dashboard</span>
-                </span>
-            </Link>
-        );
-
-        // Admin-spesifikke menyvalg
-        if (userRole === 'admin') {
-            menuItems.push(
-                <Link 
-                    key="users" 
-                    to="/users" 
-                    className={`navbar-item ${isActive('/users') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-users"></i></span>
-                        <span>Brukere</span>
-                    </span>
-                </Link>
-            );
-        }
-
-        // Legg til Heistyper for Admin
-        if (userRole === 'admin') {
-             menuItems.push(
-                <Link 
-                    key="elevator-types" 
-                    to="/elevator-types" 
-                    className={`navbar-item ${isActive('/elevator-types') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-tags"></i></span> {/* Ikon for typer/kategorier */}
-                        <span>Heistyper</span>
-                    </span>
-                </Link>
-            );
-        }
-
-        // Legg til Fravær for Admin
-        if (userRole === 'admin') {
-             menuItems.push(
-                <Link 
-                    key="absences" 
-                    to="/absences" 
-                    className={`navbar-item ${isActive('/absences') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-user-clock"></i></span> {/* Ikon for fravær/tid */}
-                        <span>Fravær</span>
-                    </span>
-                </Link>
-            );
-        }
-
-        // Felles menyvalg (juster logikk om nødvendig hvis roller/tilganger endres)
-        const commonLinks = [];
-        if (userRole === 'admin' || userRole === 'tekniker') {
-            commonLinks.push(
-                <Link 
-                    key="assignments" 
-                    to="/assignments" 
-                    className={`navbar-item ${isActive('/assignments') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-clipboard-list"></i></span>
-                        <span>Oppdrag</span>
-                    </span>
-                </Link>,
-                <Link 
-                    key="calendar" 
-                    to="/calendar" 
-                    className={`navbar-item ${isActive('/calendar') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                     <span className="icon-text">
-                        <span className="icon"><i className="fas fa-calendar-alt"></i></span>
-                        <span>Kalender</span>
-                    </span>
-                </Link>
-            );
-        }
-         if (userRole === 'admin' || userRole === 'selger') {
-             commonLinks.push(
-                <Link 
-                    key="customers" 
-                    to="/customers" 
-                    className={`navbar-item ${isActive('/customers') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-address-book"></i></span>
-                        <span>Kunder</span>
-                    </span>
-                </Link>,
-                <Link 
-                    key="elevators" 
-                    to="/elevators" 
-                    className={`navbar-item ${isActive('/elevators') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-elevator"></i></span>
-                        <span>Heiser</span>
-                    </span>
-                </Link>,
-                <Link 
-                    key="sales-opportunities" 
-                    to="/sales-opportunities" 
-                    className={`navbar-item ${isActive('/sales-opportunities') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-handshake"></i></span>
-                        <span>Salgsmuligheter</span>
-                    </span>
-                </Link>,
-                <Link 
-                    key="sales-pipeline" 
-                    to="/sales-pipeline" 
-                    className={`navbar-item ${isActive('/sales-pipeline') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-project-diagram"></i></span>
-                        <span>Salgspipeline</span>
-                    </span>
-                </Link>,
-                <Link 
-                    key="sales-follow-up" 
-                    to="/sales-follow-up" 
-                    className={`navbar-item ${isActive('/sales-follow-up') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-tasks"></i></span>
-                        <span>Oppfølgingsplan</span>
-                    </span>
-                </Link>,
-                <Link 
-                    key="quotes" 
-                    to="/quotes" 
-                    className={`navbar-item ${isActive('/quotes') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-file-invoice-dollar"></i></span> {/* Ikon for tilbud/faktura */}
-                        <span>Tilbud</span>
-                    </span>
-                </Link>,
-                 // Legger til Ordrer her for alle roller
-                 <Link 
-                    key="orders" 
-                    to="/orders" 
-                    className={`navbar-item ${isActive('/orders') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-box-open"></i></span> {/* Ikon for ordre */} 
-                        <span>Ordrer</span>
-                    </span>
-                </Link>
-             );
-         }
-         // Legg til Tilgjengelighet for Admin/Selger
-         if (userRole === 'admin' || userRole === 'selger') {
-             menuItems.push(
-                <Link 
-                    key="availability" 
-                    to="/availability" 
-                    className={`navbar-item ${isActive('/availability') ? 'is-active' : ''}`}
-                    onClick={closeMobileMenu}
-                >
-                    <span className="icon-text">
-                        <span className="icon"><i className="fas fa-calendar-check"></i></span> {/* Ikon for tilgjengelighet */}
-                        <span>Tilgjengelighet</span>
-                    </span>
-                </Link>
-            );
-         }
-         // Fjerner duplikater hvis bruker er admin
-         menuItems.push(...new Map(commonLinks.map(item => [item.key, item])).values());
-
-        return menuItems;
-    };
+    // Menyvalg med ikoner og tekst
+    const menuItems = [];
+    const dashboardPath = getDashboardPath();
+    menuItems.push({
+        key: 'dashboard',
+        to: dashboardPath,
+        text: 'Dashboard',
+        icon: <DashboardIcon />
+    });
+    if (userRole === 'admin') {
+        menuItems.push({
+            key: 'users',
+            to: '/users',
+            text: 'Brukere',
+            icon: <PeopleIcon />
+        });
+        menuItems.push({
+            key: 'elevator-types',
+            to: '/elevator-types',
+            text: 'Heistyper',
+            icon: <CategoryIcon />
+        });
+        menuItems.push({
+            key: 'absences',
+            to: '/absences',
+            text: 'Fravær',
+            icon: <EventBusyIcon />
+        });
+    }
+    if (userRole === 'admin' || userRole === 'tekniker') {
+        menuItems.push({
+            key: 'assignments',
+            to: '/assignments',
+            text: 'Oppdrag',
+            icon: <AssignmentIcon />
+        });
+        menuItems.push({
+            key: 'calendar',
+            to: '/calendar',
+            text: 'Kalender',
+            icon: <CalendarMonthIcon />
+        });
+    }
+    if (userRole === 'admin' || userRole === 'selger') {
+        menuItems.push({
+            key: 'customers',
+            to: '/customers',
+            text: 'Kunder',
+            icon: <BusinessIcon />
+        });
+        menuItems.push({
+            key: 'elevators',
+            to: '/elevators',
+            text: 'Heiser',
+            icon: <ElevatorIcon />
+        });
+        menuItems.push({
+            key: 'sales-opportunities',
+            to: '/sales-opportunities',
+            text: 'Salgsmuligheter',
+            icon: <HandshakeIcon />
+        });
+        menuItems.push({
+            key: 'sales-pipeline',
+            to: '/sales-pipeline',
+            text: 'Salgspipeline',
+            icon: <PipelineIcon />
+        });
+        menuItems.push({
+            key: 'sales-follow-up',
+            to: '/sales-follow-up',
+            text: 'Oppfølgingsplan',
+            icon: <FollowUpIcon />
+        });
+        menuItems.push({
+            key: 'quotes',
+            to: '/quotes',
+            text: 'Tilbud',
+            icon: <ReceiptIcon />
+        });
+        menuItems.push({
+            key: 'orders',
+            to: '/orders',
+            text: 'Ordrer',
+            icon: <InventoryIcon />
+        });
+        menuItems.push({
+            key: 'availability',
+            to: '/availability',
+            text: 'Tilgjengelighet',
+            icon: <AvailabilityIcon />
+        });
+    }
+    // Fjern duplikater basert på key
+    const uniqueMenuItems = Array.from(new Map(menuItems.map(item => [item.key, item])).values());
 
     // Hent brukernavn for visning
     const username = localStorage.getItem('username') || 'Bruker'; 
     
-    // Korrigert JSX struktur
-    return (
-        <nav className="navbar is-fixed-top has-shadow" role="navigation" aria-label="main navigation">
-            <div className="navbar-brand">
-                <Link to={getDashboardPath()} className="navbar-item" onClick={closeMobileMenu}>
-                    <strong style={{ fontSize: '1.2em' }}>HeisAdmin</strong> 
-                </Link>
+    // Drawer-innhold
+    const drawerList = (
+        <Box sx={{ width: 250 }} role="presentation" onClick={() => setDrawerOpen(false)}>
+            <List>
+                {uniqueMenuItems.map(item => (
+                    <ListItem button key={item.key} component={Link} to={item.to} selected={isActive(item.to)}>
+                        <ListItemIcon>{item.icon}</ListItemIcon>
+                        <ListItemText primary={item.text} />
+                    </ListItem>
+                ))}
+            </List>
+            <Divider />
+            <List>
+                <ListItem>
+                    <ListItemText primary={`${username} (${userRole})`} />
+                </ListItem>
+                <ListItem button onClick={handleLogout}>
+                    <ListItemIcon><LogoutIcon /></ListItemIcon>
+                    <ListItemText primary="Logg ut" />
+                </ListItem>
+            </List>
+        </Box>
+    );
 
-                <button 
-                    type="button"
-                    className={`navbar-burger burger ${mobileMenuOpen ? 'is-active' : ''}`}
-                    aria-label="menu"
-                    aria-expanded={mobileMenuOpen}
-                    onClick={toggleMobileMenu}
+    // Korrigert JSX struktur
+    if (!isAuthenticated) {
+        return null;
+    }
+
+    return (
+        <AppBar position="fixed" color="primary" elevation={2}>
+            <Toolbar>
+                <IconButton
+                    edge="start"
+                    color="inherit"
+                    aria-label="meny"
+                    onClick={() => setDrawerOpen(true)}
+                    sx={{ mr: 2, display: { sm: 'none' } }}
                 >
-                    <span aria-hidden="true"></span>
-                    <span aria-hidden="true"></span>
-                    <span aria-hidden="true"></span>
-                </button>
-            </div>
-            
-            <div id="navbarMenu" className={`navbar-menu ${mobileMenuOpen ? 'is-active' : ''}`}> 
-                <div className="navbar-start">
-                    {renderMenuItems()}
-                </div>
-                <div className="navbar-end">
-                    <div className="navbar-item">
-                        <div className="buttons">
-                            <span className="navbar-item">
-                                {username} ({userRole})
-                            </span>
-                            <button onClick={handleLogout} className="button is-danger is-light">
-                                <span className="icon is-small">
-                                    <i className="fas fa-sign-out-alt"></i>
-                                </span>
-                                <span>Logg ut</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </nav>
+                    <MenuIcon />
+                </IconButton>
+                <Typography
+                    variant="h6"
+                    component={Link}
+                    to={dashboardPath}
+                    sx={{ flexGrow: 1, color: 'inherit', textDecoration: 'none', fontWeight: 700 }}
+                >
+                    HeisAdmin
+                </Typography>
+                {/* Desktop-meny */}
+                <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexGrow: 1 }}>
+                    {uniqueMenuItems.map(item => (
+                        <Button
+                            key={item.key}
+                            component={Link}
+                            to={item.to}
+                            color={isActive(item.to) ? 'secondary' : 'inherit'}
+                            startIcon={item.icon}
+                            sx={{ mx: 0.5, fontWeight: isActive(item.to) ? 700 : 400 }}
+                        >
+                            {item.text}
+                        </Button>
+                    ))}
+                </Box>
+                {/* Brukerinfo og logg ut */}
+                <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+                    <Tooltip title={username}>
+                        <Typography variant="body1" sx={{ mr: 2, fontWeight: 500 }}>
+                            {username} ({userRole})
+                        </Typography>
+                    </Tooltip>
+                    <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
+                        Logg ut
+                    </Button>
+                </Box>
+            </Toolbar>
+            <Drawer
+                anchor="left"
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                sx={{ display: { xs: 'block', sm: 'none' } }}
+            >
+                {drawerList}
+            </Drawer>
+        </AppBar>
     );
 };
 
