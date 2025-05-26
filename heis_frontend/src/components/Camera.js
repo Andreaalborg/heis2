@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { 
     Box, 
     Button, 
@@ -8,20 +8,29 @@ import {
     Card,
     CardContent,
     CardActions,
-    Divider
+    Divider,
+    ToggleButton,
+    ToggleButtonGroup,
+    Chip
 } from '@mui/material';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 
 const Camera = () => {
     const [stream, setStream] = useState(null);
     const [error, setError] = useState('');
     const [capturedImage, setCapturedImage] = useState(null);
     const [isActive, setIsActive] = useState(false);
+    const [scanMode, setScanMode] = useState('photo'); // 'photo', 'qr', 'barcode'
+    const [scanResult, setScanResult] = useState(null);
+    const [isScanning, setIsScanning] = useState(false);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const fileInputRef = useRef(null);
+    const codeReaderRef = useRef(null);
 
     const startCamera = useCallback(async () => {
         try {
@@ -173,12 +182,147 @@ const Camera = () => {
         fileInputRef.current?.click();
     }, []);
 
+    const startScanning = useCallback(async () => {
+        try {
+            setError('');
+            setScanResult(null);
+            setIsScanning(true);
+
+            if (!codeReaderRef.current) {
+                codeReaderRef.current = new BrowserMultiFormatReader();
+            }
+
+            // Få tilgang til kamera
+            const videoStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'environment' }, 
+                audio: false 
+            });
+
+            setStream(videoStream);
+            setIsActive(true);
+
+            if (videoRef.current) {
+                videoRef.current.srcObject = videoStream;
+
+                // Start skanning når video er klar
+                videoRef.current.onloadedmetadata = () => {
+                    codeReaderRef.current.decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
+                        if (result) {
+                            console.log('Skanning resultat:', result.getText());
+                            setScanResult({
+                                text: result.getText(),
+                                format: result.getBarcodeFormat(),
+                                timestamp: new Date().toLocaleString()
+                            });
+                            
+                            // Stopp skanning etter vellykket resultat
+                            stopScanning();
+                        }
+                        if (err && !(err instanceof NotFoundException)) {
+                            console.warn('Skanning feil:', err);
+                        }
+                    });
+                };
+            }
+        } catch (err) {
+            console.error('Feil ved start av skanning:', err);
+            setError('Kunne ikke starte skanning. Sjekk kamera-tillatelser.');
+            setIsScanning(false);
+        }
+    }, []);
+
+    const stopScanning = useCallback(() => {
+        if (codeReaderRef.current) {
+            codeReaderRef.current.reset();
+        }
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+        setIsActive(false);
+        setIsScanning(false);
+    }, [stream]);
+
+    const handleScanFromFile = useCallback((event) => {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    if (!codeReaderRef.current) {
+                        codeReaderRef.current = new BrowserMultiFormatReader();
+                    }
+
+                    const result = await codeReaderRef.current.decodeFromImageUrl(e.target.result);
+                    setScanResult({
+                        text: result.getText(),
+                        format: result.getBarcodeFormat(),
+                        timestamp: new Date().toLocaleString()
+                    });
+                    setError('');
+                } catch (err) {
+                    console.error('Kunne ikke skanne bilde:', err);
+                    setError('Ingen QR-kode eller strekkode funnet i bildet.');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }, []);
+
+    // Cleanup ved unmount
+    useEffect(() => {
+        return () => {
+            if (codeReaderRef.current) {
+                codeReaderRef.current.reset();
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [stream]);
+
     return (
         <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
             <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CameraAltIcon />
-                Kamera
+                Kamera & Skanner
             </Typography>
+
+            {/* Mode Toggle */}
+            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+                <ToggleButtonGroup
+                    value={scanMode}
+                    exclusive
+                    onChange={(event, newMode) => {
+                        if (newMode !== null) {
+                            setScanMode(newMode);
+                            setScanResult(null);
+                            setCapturedImage(null);
+                            setError('');
+                            
+                            // Stopp pågående aktiviteter
+                            if (isActive || isScanning) {
+                                stopCamera();
+                                stopScanning();
+                            }
+                        }
+                    }}
+                    aria-label="kamera modus"
+                >
+                    <ToggleButton value="photo" aria-label="ta bilde">
+                        <PhotoCameraIcon sx={{ mr: 1 }} />
+                        Ta bilde
+                    </ToggleButton>
+                    <ToggleButton value="qr" aria-label="qr skanning">
+                        <QrCodeScannerIcon sx={{ mr: 1 }} />
+                        QR-kode
+                    </ToggleButton>
+                    <ToggleButton value="barcode" aria-label="strekkode skanning">
+                        <QrCodeScannerIcon sx={{ mr: 1 }} />
+                        Strekkode
+                    </ToggleButton>
+                </ToggleButtonGroup>
+            </Box>
 
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
@@ -186,54 +330,129 @@ const Camera = () => {
                 </Alert>
             )}
 
+            {scanResult && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                        {scanMode === 'qr' ? 'QR-kode' : 'Strekkode'} skannet!
+                    </Typography>
+                    <Typography variant="body2">
+                        <strong>Innhold:</strong> {scanResult.text}
+                    </Typography>
+                    <Typography variant="body2">
+                        <strong>Format:</strong> {scanResult.format}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        {scanResult.timestamp}
+                    </Typography>
+                    <Box sx={{ mt: 1 }}>
+                        <Chip 
+                            label="Kopier til utklippstavle" 
+                            clickable 
+                            onClick={() => navigator.clipboard.writeText(scanResult.text)}
+                            size="small"
+                        />
+                    </Box>
+                </Alert>
+            )}
+
             <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-                {!isActive && !capturedImage && (
+                {!isActive && !capturedImage && !scanResult && (
                     <Card>
                         <CardContent sx={{ textAlign: 'center', py: 6 }}>
-                            <CameraAltIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                            <Typography variant="h6" gutterBottom>
-                                Aktivér kamera
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                                Trykk på knappen nedenfor for å få tilgang til kameraet og ta bilder
-                            </Typography>
+                            {scanMode === 'photo' ? (
+                                <>
+                                    <CameraAltIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                                    <Typography variant="h6" gutterBottom>
+                                        Ta bilde
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                                        Trykk på "Start kamera" for å ta bilder. På mobil åpnes kamera-appen automatisk.
+                                    </Typography>
+                                </>
+                            ) : (
+                                <>
+                                    <QrCodeScannerIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                                    <Typography variant="h6" gutterBottom>
+                                        Skann {scanMode === 'qr' ? 'QR-kode' : 'strekkode'}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                                        Start skanning for å lese {scanMode === 'qr' ? 'QR-koder' : 'strekkoder'} med kameraet.
+                                    </Typography>
+                                </>
+                            )}
                         </CardContent>
                         <CardActions sx={{ justifyContent: 'center', pb: 3, flexDirection: 'column', gap: 2 }}>
-                            <Button
-                                variant="contained"
-                                size="large"
-                                startIcon={<PhotoCameraIcon />}
-                                onClick={startCamera}
-                                sx={{ minWidth: 200 }}
-                            >
-                                Start kamera
-                            </Button>
-                            
-                            <Divider sx={{ width: '100%' }}>eller</Divider>
-                            
-                            <Button
-                                variant="outlined"
-                                size="large"
-                                startIcon={<CloudUploadIcon />}
-                                onClick={openFileDialog}
-                                sx={{ minWidth: 200 }}
-                            >
-                                Last opp bilde
-                            </Button>
-                            
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileUpload}
-                                accept="image/*"
-                                capture="environment"
-                                style={{ display: 'none' }}
-                            />
+                            {scanMode === 'photo' ? (
+                                <>
+                                    <Button
+                                        variant="contained"
+                                        size="large"
+                                        startIcon={<PhotoCameraIcon />}
+                                        onClick={openFileDialog}
+                                        sx={{ minWidth: 200 }}
+                                    >
+                                        Start kamera
+                                    </Button>
+                                    
+                                    <Divider sx={{ width: '100%' }}>eller</Divider>
+                                    
+                                    <Button
+                                        variant="outlined"
+                                        size="large"
+                                        startIcon={<CloudUploadIcon />}
+                                        onClick={startCamera}
+                                        sx={{ minWidth: 200 }}
+                                    >
+                                        Live kamera (avansert)
+                                    </Button>
+                                    
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileUpload}
+                                        accept="image/*"
+                                        capture="environment"
+                                        style={{ display: 'none' }}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <Button
+                                        variant="contained"
+                                        size="large"
+                                        startIcon={<QrCodeScannerIcon />}
+                                        onClick={startScanning}
+                                        sx={{ minWidth: 200 }}
+                                    >
+                                        Start skanning
+                                    </Button>
+                                    
+                                    <Divider sx={{ width: '100%' }}>eller</Divider>
+                                    
+                                    <Button
+                                        variant="outlined"
+                                        size="large"
+                                        startIcon={<CloudUploadIcon />}
+                                        onClick={() => document.getElementById('scan-file-input').click()}
+                                        sx={{ minWidth: 200 }}
+                                    >
+                                        Skann fra bilde
+                                    </Button>
+                                    
+                                    <input
+                                        id="scan-file-input"
+                                        type="file"
+                                        onChange={handleScanFromFile}
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                    />
+                                </>
+                            )}
                         </CardActions>
                     </Card>
                 )}
 
-                {isActive && !capturedImage && (
+                {(isActive || isScanning) && !capturedImage && !scanResult && (
                     <Box sx={{ textAlign: 'center' }}>
                         <video
                             ref={videoRef}
@@ -249,23 +468,38 @@ const Camera = () => {
                                 backgroundColor: '#000'
                             }}
                         />
-                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                            <Button
-                                variant="contained"
-                                size="large"
-                                startIcon={<PhotoCameraIcon />}
-                                onClick={capturePhoto}
-                            >
-                                Ta bilde
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                size="large"
-                                onClick={stopCamera}
-                            >
-                                Stopp kamera
-                            </Button>
-                        </Box>
+                        {scanMode === 'photo' ? (
+                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                                <Button
+                                    variant="contained"
+                                    size="large"
+                                    startIcon={<PhotoCameraIcon />}
+                                    onClick={capturePhoto}
+                                >
+                                    Ta bilde
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    size="large"
+                                    onClick={stopCamera}
+                                >
+                                    Stopp kamera
+                                </Button>
+                            </Box>
+                        ) : (
+                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                                <Typography variant="body1" sx={{ alignSelf: 'center' }}>
+                                    Skanner... Hold {scanMode === 'qr' ? 'QR-koden' : 'strekkoden'} foran kameraet
+                                </Typography>
+                                <Button
+                                    variant="outlined"
+                                    size="large"
+                                    onClick={stopScanning}
+                                >
+                                    Stopp skanning
+                                </Button>
+                            </Box>
+                        )}
                     </Box>
                 )}
 
@@ -312,8 +546,8 @@ const Camera = () => {
             </Paper>
 
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-                Du kan enten bruke enhetens kamera direkte eller laste opp et eksisterende bilde. 
-                På mobil vil "Last opp bilde" automatisk åpne kameraet.
+                "Start kamera" åpner kamera-appen på mobil eller filvelger på PC. 
+                "Live kamera" prøver å bruke nettleser-kameraet direkte (kan ha kompatibilitetsproblemer).
             </Typography>
         </Box>
     );
