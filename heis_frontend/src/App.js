@@ -1,7 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { ThemeProvider, createTheme, useTheme } from '@mui/material/styles';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -90,7 +90,46 @@ function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [userRole, setUserRole] = useState(null); // Rolle lagres nå her
-    const theme = useTheme();
+    const theme = createTheme({
+        palette: {
+            primary: {
+                main: '#fff',
+                contrastText: '#23272f',
+            },
+            secondary: {
+                main: '#2c3e50',
+            },
+            background: {
+                default: '#f5f5f5',
+            },
+            text: {
+                primary: '#23272f',
+            },
+        },
+        shape: {
+            borderRadius: 8,
+        },
+        components: {
+            MuiAppBar: {
+                styleOverrides: {
+                    root: {
+                        boxShadow: '0 2px 8px 0 rgba(60,60,60,0.08)',
+                        backgroundColor: '#fff',
+                        color: '#23272f',
+                    },
+                },
+            },
+            MuiDrawer: {
+                styleOverrides: {
+                    paper: {
+                        boxShadow: '2px 0 8px 0 rgba(60,60,60,0.08)',
+                        backgroundColor: '#fff',
+                        color: '#23272f',
+                    },
+                },
+            },
+        },
+    });
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [sidebarOpen, setSidebarOpen] = useState(false);
 

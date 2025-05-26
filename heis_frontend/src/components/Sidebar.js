@@ -30,7 +30,7 @@ const drawerWidth = 220;
 const Sidebar = ({ userRole, open, onClose }) => {
     const location = useLocation();
     const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
 
     // Menyvalg med ikoner og tekst
     const getMenuItems = () => {
