@@ -9,17 +9,19 @@ import Tooltip from '@mui/material/Tooltip';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
 import IconButton from '@mui/material/IconButton';
+import { useAuth } from './Auth';
 
-const Navbar = ({ isAuthenticated, setIsAuthenticated, userRole, onMenuClick, isMobile }) => {
+const Navbar = ({ userRole, onMenuClick, isMobile }) => {
     const navigate = useNavigate();
-    const username = localStorage.getItem('username') || 'Bruker';
+    const { logout, userData } = useAuth();
+    const username = userData?.username || 'Bruker';
 
     const handleLogout = () => {
-        setIsAuthenticated(false);
+        logout();
         navigate('/login');
     };
 
-    if (!isAuthenticated) return null;
+    if (!userData) return null;
 
     return (
         <AppBar position="fixed" color="primary" elevation={2} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
