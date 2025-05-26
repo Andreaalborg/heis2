@@ -1,7 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import apiClient from '../api';
 import { Link } from 'react-router-dom';
-import '../styles/Dashboard.css';
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardHeader from '@mui/material/CardHeader';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import TextField from '@mui/material/TextField';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 const Dashboard = () => {
     const [userInfo, setUserInfo] = useState(null);
@@ -170,98 +185,152 @@ const Dashboard = () => {
     }, [allAssignments, searchTerm, customers]);
 
     if (isLoading) {
-        return <div className="loading-container">Laster dashboard...</div>;
+        return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}><Typography>Laster dashboard...</Typography></Box>;
     }
     
     if (error) {
-        return <div className="error-container">{error}</div>;
+        return <Box sx={{ color: 'error.main', p: 2 }}>{error}</Box>;
     }
     
     return (
-        <div className="dashboard-container">
-            <div className="dashboard-header">
-                <h1>Velkommen {userInfo?.first_name || userInfo?.username}!</h1>
-                <button onClick={fetchDashboardData} className="btn btn-sm btn-secondary" disabled={isLoading}>
-                    {isLoading ? 'Oppdaterer...' : 'Oppdater'}
-                </button>
-            </div>
-            
-            <div className="dashboard-grid stats-grid">
-                 <div className="dashboard-card stat-card">
-                    <div className="stat-value">{stats.activeTotal}</div>
-                    <div className="stat-label">Aktive Oppdrag</div>
-                 </div>
-                 <div className="dashboard-card stat-card">
-                     <div className="stat-value">{stats.assignedToMe}</div>
-                     <div className="stat-label">Mine Aktive</div>
-                 </div>
-                 <div className="dashboard-card stat-card">
-                     <div className="stat-value">{stats.statusNew}</div>
-                     <div className="stat-label">Nye Oppdrag</div>
-                 </div>
-                 <div className="dashboard-card stat-card">
-                     <div className="stat-value">{stats.statusInProgress}</div>
-                     <div className="stat-label">Pågående</div>
-                 </div>
-                 <div className="dashboard-card stat-card stat-card-highlight">
-                     <div className="stat-value">{stats.dueSoon}</div>
-                     <div className="stat-label">Nær Frist (7 dager)</div>
-                 </div>
-            </div>
-            
-            <div className="dashboard-card upcoming-assignments-card">
-                <div className="card-header">
-                    <h2>Kommende Oppdrag</h2>
-                    <div className="header-controls">
-                        <input 
-                            type="text"
-                            placeholder="Søk i tittel/kunde..."
-                            className="form-control form-control-sm search-input"
+        <Box sx={{ mt: 4, mb: 2 }}>
+            <Grid container spacing={2} alignItems="center" justifyContent="space-between">
+                <Grid item xs={12} md={8}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+                        Velkommen {userInfo?.first_name || userInfo?.username}!
+                    </Typography>
+                </Grid>
+                <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<RefreshIcon />}
+                        onClick={fetchDashboardData}
+                        disabled={isLoading}
+                        sx={{ mb: { xs: 2, md: 0 } }}
+                    >
+                        {isLoading ? 'Oppdaterer...' : 'Oppdater'}
+                    </Button>
+                </Grid>
+            </Grid>
+
+            {/* Statistikk kort */}
+            <Grid container spacing={2} sx={{ mt: 1, mb: 2 }}>
+                <Grid item xs={6} md={2.4}>
+                    <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+                        <CardContent>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.activeTotal}</Typography>
+                            <Typography variant="body2">Aktive Oppdrag</Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid item xs={6} md={2.4}>
+                    <Card>
+                        <CardContent>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.assignedToMe}</Typography>
+                            <Typography variant="body2">Mine Aktive</Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid item xs={6} md={2.4}>
+                    <Card>
+                        <CardContent>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.statusNew}</Typography>
+                            <Typography variant="body2">Nye Oppdrag</Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid item xs={6} md={2.4}>
+                    <Card>
+                        <CardContent>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.statusInProgress}</Typography>
+                            <Typography variant="body2">Pågående</Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid item xs={12} md={2.4}>
+                    <Card sx={{ bgcolor: 'warning.light', color: 'warning.contrastText' }}>
+                        <CardContent>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.dueSoon}</Typography>
+                            <Typography variant="body2">Nær Frist (7 dager)</Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            </Grid>
+
+            {/* Kommende oppdrag */}
+            <Card sx={{ mt: 2 }}>
+                <CardHeader
+                    title="Kommende Oppdrag"
+                    action={
+                        <Button component={Link} to="/assignments" variant="text" size="small">
+                            Se alle
+                        </Button>
+                    }
+                />
+                <CardContent>
+                    <Box sx={{ mb: 2 }}>
+                        <TextField
+                            label="Søk i tittel/kunde"
+                            variant="outlined"
+                            size="small"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
+                            sx={{ width: { xs: '100%', sm: '300px' } }}
                         />
-                        <Link to="/assignments" className="view-all-link">Se alle</Link> 
-                    </div>
-                </div>
-                <div className="card-content">
+                    </Box>
                     {filteredAndLimitedAssignments.length === 0 ? (
-                        <p className="no-data">{searchTerm ? 'Ingen treff på søket.' : 'Ingen aktive kommende oppdrag funnet.'}</p>
+                        <Typography color="text.secondary">
+                            {searchTerm ? 'Ingen treff på søket.' : 'Ingen aktive kommende oppdrag funnet.'}
+                        </Typography>
                     ) : (
-                        <table className="table table-sm table-hover dashboard-table">
-                            <thead>
-                                <tr>
-                                    <th>Dato</th>
-                                    <th>Tid</th>
-                                    <th>Tittel</th>
-                                    <th>Kunde</th>
-                                    <th>Tildelt</th>
-                                    <th>Status</th>
-                                    <th>Frist</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredAndLimitedAssignments.map((assignment) => (
-                                    <tr key={assignment.id}>
-                                        <td>{formatDate(assignment.scheduled_date)}</td>
-                                        <td>{formatTime(assignment.scheduled_date)}</td>
-                                        <td>{assignment.title}</td>
-                                        <td>{customers[assignment.customer] || '-'}</td>
-                                        <td>{users[assignment.assigned_to] || '-'}</td>
-                                        <td>
-                                            <span className={`badge ${getStatusClass(assignment.status)}`}>
-                                                {getStatusLabel(assignment.status)}
-                                            </span>
-                                        </td>
-                                         <td>{formatDate(assignment.deadline_date)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <TableContainer component={Paper}>
+                            <Table size="small">
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>Dato</TableCell>
+                                        <TableCell>Tid</TableCell>
+                                        <TableCell>Tittel</TableCell>
+                                        <TableCell>Kunde</TableCell>
+                                        <TableCell>Tildelt</TableCell>
+                                        <TableCell>Status</TableCell>
+                                        <TableCell>Frist</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {filteredAndLimitedAssignments.map((assignment) => (
+                                        <TableRow key={assignment.id}>
+                                            <TableCell>{formatDate(assignment.scheduled_date)}</TableCell>
+                                            <TableCell>{formatTime(assignment.scheduled_date)}</TableCell>
+                                            <TableCell>{assignment.title}</TableCell>
+                                            <TableCell>{customers[assignment.customer] || '-'}</TableCell>
+                                            <TableCell>{users[assignment.assigned_to] || '-'}</TableCell>
+                                            <TableCell>
+                                                <Box component="span" sx={{
+                                                    px: 1.5,
+                                                    py: 0.5,
+                                                    borderRadius: 2,
+                                                    bgcolor: assignment.status === 'ny' ? 'info.light'
+                                                        : assignment.status === 'påbegynt' ? 'warning.light'
+                                                        : assignment.status === 'ferdig' ? 'success.light'
+                                                        : assignment.status === 'fakturert' ? 'success.main'
+                                                        : 'grey.200',
+                                                    color: 'text.primary',
+                                                    fontWeight: 500,
+                                                    fontSize: 13
+                                                }}>
+                                                    {getStatusLabel(assignment.status)}
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell>{formatDate(assignment.deadline_date)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
                     )}
-                </div>
-            </div>
-
-        </div>
+                </CardContent>
+            </Card>
+        </Box>
     );
 };
 
