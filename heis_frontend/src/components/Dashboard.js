@@ -189,7 +189,7 @@ const Dashboard = () => {
 
     }, [allAssignments, searchTerm, customers]);
 
-    // Ikoner og farger for statistikk-kort
+    // Oppdatert statCards med flatere design og lik størrelse
     const statCards = [
         {
             label: 'Aktive Oppdrag',
@@ -231,12 +231,34 @@ const Dashboard = () => {
             label: 'Nær Frist (7 dager)',
             value: stats.dueSoon,
             icon: <WarningAmberIcon sx={{ fontSize: 40, color: 'error.main' }} />,
-            bgcolor: 'error.light',
+            bgcolor: 'white',
             color: 'error.main',
             border: '2px solid',
             borderColor: 'error.main',
         },
     ];
+
+    // Funksjon for å bestemme farge på status-badge
+    const getStatusBadgeStyle = (status) => {
+        switch (status) {
+            case 'ny':
+                return { bgcolor: 'info.light', color: 'info.dark' };
+            case 'tildelt':
+                return { bgcolor: 'secondary.light', color: 'secondary.dark' };
+            case 'påbegynt':
+            case 'in_progress':
+                return { bgcolor: 'warning.light', color: 'warning.dark' };
+            case 'ferdig':
+            case 'completed':
+                return { bgcolor: 'success.light', color: 'success.dark' };
+            case 'fakturert':
+                return { bgcolor: 'success.main', color: 'white' };
+            case 'pending':
+                return { bgcolor: 'grey.300', color: 'grey.800' };
+            default:
+                return { bgcolor: 'grey.200', color: 'text.primary' };
+        }
+    };
 
     if (isLoading) {
         return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}><Typography>Laster dashboard...</Typography></Box>;
@@ -269,7 +291,7 @@ const Dashboard = () => {
 
             {/* Statistikk kort */}
             <Grid container spacing={2} sx={{ mt: 1, mb: 2 }}>
-                {statCards.map((card, idx) => (
+                {statCards.map((card) => (
                     <Grid item xs={12} sm={6} md={2.4} key={card.label}>
                         <Card
                             sx={{
@@ -278,26 +300,30 @@ const Dashboard = () => {
                                 border: card.border,
                                 borderColor: card.borderColor,
                                 boxShadow: 3,
-                                borderRadius: 3,
-                                p: 1,
+                                borderRadius: 1,
+                                minHeight: 130,
+                                minWidth: 180,
+                                maxWidth: 220,
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
-                                minHeight: 120,
+                                justifyContent: 'center',
+                                p: 2,
+                                m: 'auto',
                                 transition: 'transform 0.15s',
-                                '&:hover': { transform: 'scale(1.04)', boxShadow: 6 },
+                                '&:hover': { transform: 'scale(1.03)', boxShadow: 6 },
                             }}
                         >
                             <Box sx={{ mb: 1 }}>{card.icon}</Box>
-                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{card.value}</Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{card.label}</Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>{card.value}</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, textAlign: 'center', px: 1 }}>{card.label}</Typography>
                         </Card>
                     </Grid>
                 ))}
             </Grid>
 
             {/* Kommende oppdrag */}
-            <Card sx={{ mt: 2, borderRadius: 3, boxShadow: 3 }}>
+            <Card sx={{ mt: 2, borderRadius: 2, boxShadow: 3 }}>
                 <CardHeader
                     title={<Typography variant="h6" sx={{ fontWeight: 700 }}>Kommende Oppdrag</Typography>}
                     action={
@@ -336,46 +362,34 @@ const Dashboard = () => {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {filteredAndLimitedAssignments.map((assignment) => (
-                                        <TableRow key={assignment.id}>
-                                            <TableCell>{formatDate(assignment.scheduled_date)}</TableCell>
-                                            <TableCell>{formatTime(assignment.scheduled_date)}</TableCell>
-                                            <TableCell>{assignment.title}</TableCell>
-                                            <TableCell>{customers[assignment.customer] || '-'}</TableCell>
-                                            <TableCell>{users[assignment.assigned_to] || '-'}</TableCell>
-                                            <TableCell>
-                                                <Box component="span" sx={{
-                                                    px: 1.5,
-                                                    py: 0.5,
-                                                    borderRadius: 2,
-                                                    bgcolor:
-                                                        assignment.status === 'ny' ? 'info.light'
-                                                        : assignment.status === 'påbegynt' ? 'warning.light'
-                                                        : assignment.status === 'ferdig' ? 'success.light'
-                                                        : assignment.status === 'fakturert' ? 'success.main'
-                                                        : assignment.status === 'tildelt' ? 'secondary.light'
-                                                        : 'grey.200',
-                                                    color:
-                                                        assignment.status === 'ferdig' || assignment.status === 'fakturert'
-                                                            ? 'success.dark'
-                                                            : assignment.status === 'påbegynt'
-                                                                ? 'warning.dark'
-                                                                : assignment.status === 'ny'
-                                                                    ? 'info.dark'
-                                                                    : assignment.status === 'tildelt'
-                                                                        ? 'secondary.dark'
-                                                                        : 'text.primary',
-                                                    fontWeight: 600,
-                                                    fontSize: 13,
-                                                    boxShadow: 1,
-                                                    textTransform: 'capitalize',
-                                                }}>
-                                                    {getStatusLabel(assignment.status)}
-                                                </Box>
-                                            </TableCell>
-                                            <TableCell>{formatDate(assignment.deadline_date)}</TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {filteredAndLimitedAssignments.map((assignment) => {
+                                        const badgeStyle = getStatusBadgeStyle(assignment.status);
+                                        return (
+                                            <TableRow key={assignment.id}>
+                                                <TableCell>{formatDate(assignment.scheduled_date)}</TableCell>
+                                                <TableCell>{formatTime(assignment.scheduled_date)}</TableCell>
+                                                <TableCell>{assignment.title}</TableCell>
+                                                <TableCell>{customers[assignment.customer] || '-'}</TableCell>
+                                                <TableCell>{users[assignment.assigned_to] || '-'}</TableCell>
+                                                <TableCell>
+                                                    <Box component="span" sx={{
+                                                        px: 1.5,
+                                                        py: 0.5,
+                                                        borderRadius: 2,
+                                                        bgcolor: badgeStyle.bgcolor,
+                                                        color: badgeStyle.color,
+                                                        fontWeight: 600,
+                                                        fontSize: 13,
+                                                        boxShadow: 1,
+                                                        textTransform: 'capitalize',
+                                                    }}>
+                                                        {getStatusLabel(assignment.status)}
+                                                    </Box>
+                                                </TableCell>
+                                                <TableCell>{formatDate(assignment.deadline_date)}</TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </TableContainer>
