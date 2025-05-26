@@ -281,6 +281,13 @@ const AppContent = () => {
                                 </ProtectedRoute>
                             } />
                             
+                            {/* Kamera Rute - tilgjengelig for alle autentiserte brukere */}
+                            <Route path="/camera" element={
+                                <ProtectedRoute allowedRoles={['admin', 'tekniker', 'selger']}>
+                                    <Camera />
+                                </ProtectedRoute>
+                            } />
+                            
                             {/* Omdirigering og feilsider */}
                             <Route path="/" element={<Navigate to={getHomeRoute()} replace />} />
                             <Route path="/unauthorized" element={
