@@ -23,20 +23,63 @@ const Camera = () => {
     const startCamera = useCallback(async () => {
         try {
             setError('');
-            const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' },
-                audio: false
-            });
+            
+            // Sjekk om getUserMedia er tilgjengelig
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('getUserMedia ikke tilgjengelig');
+            }
+
+            // Prøv først med environment (bakre kamera), deretter user (fremre kamera), til slutt uten preferanse
+            const constraints = [
+                { video: { facingMode: 'environment' }, audio: false },
+                { video: { facingMode: 'user' }, audio: false },
+                { video: true, audio: false }
+            ];
+
+            let mediaStream = null;
+            let lastError = null;
+
+            for (const constraint of constraints) {
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia(constraint);
+                    break;
+                } catch (err) {
+                    lastError = err;
+                    console.warn('Kamera-forsøk feilet:', constraint, err);
+                }
+            }
+
+            if (!mediaStream) {
+                throw lastError || new Error('Kunne ikke få tilgang til kamera');
+            }
             
             setStream(mediaStream);
             setIsActive(true);
             
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
+                // Vent til video er klar før vi fortsetter
+                videoRef.current.onloadedmetadata = () => {
+                    console.log('Video metadata lastet:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+                };
             }
         } catch (err) {
             console.error('Feil ved tilgang til kamera:', err);
-            setError('Kunne ikke få tilgang til kamera. Sjekk at du har gitt tillatelse til kamerabruk.');
+            let errorMessage = 'Kunne ikke få tilgang til kamera. ';
+            
+            if (err.name === 'NotAllowedError') {
+                errorMessage += 'Tillatelse til kamera ble nektet. Gi tillatelse og prøv igjen.';
+            } else if (err.name === 'NotFoundError') {
+                errorMessage += 'Ingen kamera ble funnet på enheten.';
+            } else if (err.name === 'NotReadableError') {
+                errorMessage += 'Kameraet er i bruk av en annen applikasjon.';
+            } else if (err.name === 'OverconstrainedError') {
+                errorMessage += 'Kamerainnstillingene er ikke støttet.';
+            } else {
+                errorMessage += `Feil: ${err.message}`;
+            }
+            
+            setError(errorMessage);
         }
     }, []);
 
@@ -54,15 +97,31 @@ const Camera = () => {
             const canvas = canvasRef.current;
             const context = canvas.getContext('2d');
             
+            // Sjekk at video har dimensjoner
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                setError('Video er ikke klar for fotografering. Vent litt og prøv igjen.');
+                return;
+            }
+            
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
+            // Lagre kontekst-innstillinger
+            context.save();
+            
+            // Tegn video-bildet på canvas
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            // Gjenopprett kontekst
+            context.restore();
+            
+            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
             setCapturedImage(imageDataUrl);
+            
+            // Stopp kameraet etter at bildet er tatt
+            stopCamera();
         }
-    }, []);
+    }, [stopCamera]);
 
     const downloadImage = useCallback(() => {
         if (capturedImage) {
@@ -122,12 +181,14 @@ const Camera = () => {
                             ref={videoRef}
                             autoPlay
                             playsInline
+                            muted
                             style={{
                                 width: '100%',
                                 maxWidth: '600px',
                                 height: 'auto',
                                 borderRadius: '8px',
-                                marginBottom: '16px'
+                                marginBottom: '16px',
+                                backgroundColor: '#000'
                             }}
                         />
                         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
