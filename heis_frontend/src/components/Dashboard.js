@@ -17,6 +17,11 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import TextField from '@mui/material/TextField';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import PersonIcon from '@mui/icons-material/Person';
+import NewReleasesIcon from '@mui/icons-material/NewReleases';
+import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 const Dashboard = () => {
     const [userInfo, setUserInfo] = useState(null);
@@ -184,6 +189,55 @@ const Dashboard = () => {
 
     }, [allAssignments, searchTerm, customers]);
 
+    // Ikoner og farger for statistikk-kort
+    const statCards = [
+        {
+            label: 'Aktive Oppdrag',
+            value: stats.activeTotal,
+            icon: <AssignmentIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
+            bgcolor: 'white',
+            color: 'primary.main',
+            border: '2px solid',
+            borderColor: 'primary.light',
+        },
+        {
+            label: 'Mine Aktive',
+            value: stats.assignedToMe,
+            icon: <PersonIcon sx={{ fontSize: 40, color: 'info.main' }} />,
+            bgcolor: 'white',
+            color: 'info.main',
+            border: '2px solid',
+            borderColor: 'info.light',
+        },
+        {
+            label: 'Nye Oppdrag',
+            value: stats.statusNew,
+            icon: <NewReleasesIcon sx={{ fontSize: 40, color: 'success.main' }} />,
+            bgcolor: 'white',
+            color: 'success.main',
+            border: '2px solid',
+            borderColor: 'success.light',
+        },
+        {
+            label: 'Pågående',
+            value: stats.statusInProgress,
+            icon: <PlayCircleFilledWhiteIcon sx={{ fontSize: 40, color: 'warning.main' }} />,
+            bgcolor: 'white',
+            color: 'warning.main',
+            border: '2px solid',
+            borderColor: 'warning.light',
+        },
+        {
+            label: 'Nær Frist (7 dager)',
+            value: stats.dueSoon,
+            icon: <WarningAmberIcon sx={{ fontSize: 40, color: 'error.main' }} />,
+            bgcolor: 'error.light',
+            color: 'error.main',
+            border: '2px solid',
+            borderColor: 'error.main',
+        },
+    ];
+
     if (isLoading) {
         return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}><Typography>Laster dashboard...</Typography></Box>;
     }
@@ -215,52 +269,37 @@ const Dashboard = () => {
 
             {/* Statistikk kort */}
             <Grid container spacing={2} sx={{ mt: 1, mb: 2 }}>
-                <Grid item xs={6} md={2.4}>
-                    <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-                        <CardContent>
-                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.activeTotal}</Typography>
-                            <Typography variant="body2">Aktive Oppdrag</Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={6} md={2.4}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.assignedToMe}</Typography>
-                            <Typography variant="body2">Mine Aktive</Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={6} md={2.4}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.statusNew}</Typography>
-                            <Typography variant="body2">Nye Oppdrag</Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={6} md={2.4}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.statusInProgress}</Typography>
-                            <Typography variant="body2">Pågående</Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} md={2.4}>
-                    <Card sx={{ bgcolor: 'warning.light', color: 'warning.contrastText' }}>
-                        <CardContent>
-                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.dueSoon}</Typography>
-                            <Typography variant="body2">Nær Frist (7 dager)</Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                {statCards.map((card, idx) => (
+                    <Grid item xs={12} sm={6} md={2.4} key={card.label}>
+                        <Card
+                            sx={{
+                                bgcolor: card.bgcolor,
+                                color: card.color,
+                                border: card.border,
+                                borderColor: card.borderColor,
+                                boxShadow: 3,
+                                borderRadius: 3,
+                                p: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                minHeight: 120,
+                                transition: 'transform 0.15s',
+                                '&:hover': { transform: 'scale(1.04)', boxShadow: 6 },
+                            }}
+                        >
+                            <Box sx={{ mb: 1 }}>{card.icon}</Box>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{card.value}</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{card.label}</Typography>
+                        </Card>
+                    </Grid>
+                ))}
             </Grid>
 
             {/* Kommende oppdrag */}
-            <Card sx={{ mt: 2 }}>
+            <Card sx={{ mt: 2, borderRadius: 3, boxShadow: 3 }}>
                 <CardHeader
-                    title="Kommende Oppdrag"
+                    title={<Typography variant="h6" sx={{ fontWeight: 700 }}>Kommende Oppdrag</Typography>}
                     action={
                         <Button component={Link} to="/assignments" variant="text" size="small">
                             Se alle
@@ -283,17 +322,17 @@ const Dashboard = () => {
                             {searchTerm ? 'Ingen treff på søket.' : 'Ingen aktive kommende oppdrag funnet.'}
                         </Typography>
                     ) : (
-                        <TableContainer component={Paper}>
-                            <Table size="small">
+                        <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 1, maxHeight: 400 }}>
+                            <Table size="small" stickyHeader>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>Dato</TableCell>
-                                        <TableCell>Tid</TableCell>
-                                        <TableCell>Tittel</TableCell>
-                                        <TableCell>Kunde</TableCell>
-                                        <TableCell>Tildelt</TableCell>
-                                        <TableCell>Status</TableCell>
-                                        <TableCell>Frist</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Dato</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Tid</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Tittel</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Kunde</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Tildelt</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Status</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Frist</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -309,14 +348,27 @@ const Dashboard = () => {
                                                     px: 1.5,
                                                     py: 0.5,
                                                     borderRadius: 2,
-                                                    bgcolor: assignment.status === 'ny' ? 'info.light'
+                                                    bgcolor:
+                                                        assignment.status === 'ny' ? 'info.light'
                                                         : assignment.status === 'påbegynt' ? 'warning.light'
                                                         : assignment.status === 'ferdig' ? 'success.light'
                                                         : assignment.status === 'fakturert' ? 'success.main'
+                                                        : assignment.status === 'tildelt' ? 'secondary.light'
                                                         : 'grey.200',
-                                                    color: 'text.primary',
-                                                    fontWeight: 500,
-                                                    fontSize: 13
+                                                    color:
+                                                        assignment.status === 'ferdig' || assignment.status === 'fakturert'
+                                                            ? 'success.dark'
+                                                            : assignment.status === 'påbegynt'
+                                                                ? 'warning.dark'
+                                                                : assignment.status === 'ny'
+                                                                    ? 'info.dark'
+                                                                    : assignment.status === 'tildelt'
+                                                                        ? 'secondary.dark'
+                                                                        : 'text.primary',
+                                                    fontWeight: 600,
+                                                    fontSize: 13,
+                                                    boxShadow: 1,
+                                                    textTransform: 'capitalize',
                                                 }}>
                                                     {getStatusLabel(assignment.status)}
                                                 </Box>
