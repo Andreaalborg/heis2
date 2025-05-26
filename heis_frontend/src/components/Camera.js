@@ -29,10 +29,16 @@ const Camera = () => {
                 throw new Error('getUserMedia ikke tilgjengelig');
             }
 
-            // Prøv først med environment (bakre kamera), deretter user (fremre kamera), til slutt uten preferanse
+            // Stopp eksisterende streams først
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                setStream(null);
+            }
+
+            // Enklere constraints for bedre kompatibilitet
             const constraints = [
-                { video: { facingMode: 'environment' }, audio: false },
-                { video: { facingMode: 'user' }, audio: false },
+                { video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+                { video: { width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
                 { video: true, audio: false }
             ];
 
@@ -41,11 +47,13 @@ const Camera = () => {
 
             for (const constraint of constraints) {
                 try {
+                    console.log('Prøver kamera med:', constraint);
                     mediaStream = await navigator.mediaDevices.getUserMedia(constraint);
+                    console.log('Kamera-tilgang vellykket med:', constraint);
                     break;
                 } catch (err) {
                     lastError = err;
-                    console.warn('Kamera-forsøk feilet:', constraint, err);
+                    console.warn('Kamera-forsøk feilet:', constraint, err.name, err.message);
                 }
             }
 
@@ -58,21 +66,46 @@ const Camera = () => {
             
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
-                // Vent til video er klar før vi fortsetter
-                videoRef.current.onloadedmetadata = () => {
-                    console.log('Video metadata lastet:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
-                };
+                
+                // Bedre håndtering av video-loading
+                return new Promise((resolve, reject) => {
+                    const video = videoRef.current;
+                    
+                    const onLoadedData = () => {
+                        console.log('Video data lastet:', video.videoWidth, 'x', video.videoHeight);
+                        video.removeEventListener('loadeddata', onLoadedData);
+                        video.removeEventListener('error', onError);
+                        resolve();
+                    };
+                    
+                    const onError = (err) => {
+                        console.error('Video loading error:', err);
+                        video.removeEventListener('loadeddata', onLoadedData);
+                        video.removeEventListener('error', onError);
+                        reject(new Error('Video kunne ikke lastes'));
+                    };
+                    
+                    video.addEventListener('loadeddata', onLoadedData);
+                    video.addEventListener('error', onError);
+                    
+                    // Timeout etter 10 sekunder
+                    setTimeout(() => {
+                        video.removeEventListener('loadeddata', onLoadedData);
+                        video.removeEventListener('error', onError);
+                        reject(new Error('Video loading timeout'));
+                    }, 10000);
+                });
             }
         } catch (err) {
             console.error('Feil ved tilgang til kamera:', err);
             let errorMessage = 'Kunne ikke få tilgang til kamera. ';
             
             if (err.name === 'NotAllowedError') {
-                errorMessage += 'Tillatelse til kamera ble nektet. Gi tillatelse og prøv igjen.';
+                errorMessage += 'Tillatelse til kamera ble nektet. Sjekk nettleserinnstillinger og gi tillatelse.';
             } else if (err.name === 'NotFoundError') {
                 errorMessage += 'Ingen kamera ble funnet på enheten.';
             } else if (err.name === 'NotReadableError') {
-                errorMessage += 'Kameraet er i bruk av en annen applikasjon.';
+                errorMessage += 'Kameraet er i bruk av en annen applikasjon. Lukk andre apper som bruker kameraet.';
             } else if (err.name === 'OverconstrainedError') {
                 errorMessage += 'Kamerainnstillingene er ikke støttet.';
             } else {
@@ -80,8 +113,15 @@ const Camera = () => {
             }
             
             setError(errorMessage);
+            
+            // Rydd opp ved feil
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                setStream(null);
+            }
+            setIsActive(false);
         }
-    }, []);
+    }, [stream]);
 
     const stopCamera = useCallback(() => {
         if (stream) {
@@ -95,31 +135,61 @@ const Camera = () => {
         if (videoRef.current && canvasRef.current) {
             const video = videoRef.current;
             const canvas = canvasRef.current;
-            const context = canvas.getContext('2d');
             
-            // Sjekk at video har dimensjoner
-            if (video.videoWidth === 0 || video.videoHeight === 0) {
-                setError('Video er ikke klar for fotografering. Vent litt og prøv igjen.');
+            console.log('Forsøker å ta bilde. Video dimensjoner:', video.videoWidth, 'x', video.videoHeight);
+            console.log('Video readyState:', video.readyState);
+            console.log('Video currentTime:', video.currentTime);
+            
+            // Sjekk at video er klar og har dimensjoner
+            if (video.readyState < 2) { // HAVE_CURRENT_DATA
+                setError('Video laster fortsatt. Vent litt og prøv igjen.');
                 return;
             }
             
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                setError('Video har ingen dimensjoner. Prøv å starte kameraet på nytt.');
+                return;
+            }
+            
+            // Sett canvas-dimensjoner
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
-            // Lagre kontekst-innstillinger
-            context.save();
+            const context = canvas.getContext('2d');
+            
+            // Tøm canvas først
+            context.clearRect(0, 0, canvas.width, canvas.height);
             
             // Tegn video-bildet på canvas
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Gjenopprett kontekst
-            context.restore();
-            
-            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            setCapturedImage(imageDataUrl);
-            
-            // Stopp kameraet etter at bildet er tatt
-            stopCamera();
+            try {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Sjekk om canvas har innhold (ikke bare hvitt/gjennomsiktig)
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const hasContent = imageData.data.some((value, index) => {
+                    // Sjekk alpha-kanal (hver 4. piksel)
+                    if (index % 4 === 3) return value > 0;
+                    // Sjekk RGB-verdier
+                    return value !== 255 && value !== 0;
+                });
+                
+                if (!hasContent) {
+                    setError('Bildet er tomt. Sjekk at kameraet fungerer og prøv igjen.');
+                    return;
+                }
+                
+                const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                console.log('Bilde tatt. Data URL lengde:', imageDataUrl.length);
+                setCapturedImage(imageDataUrl);
+                
+                // Stopp kameraet etter at bildet er tatt
+                stopCamera();
+            } catch (err) {
+                console.error('Feil ved tegning av video til canvas:', err);
+                setError('Kunne ikke ta bilde. Prøv igjen.');
+            }
+        } else {
+            setError('Kamera er ikke initialisert. Start kameraet først.');
         }
     }, [stopCamera]);
 
