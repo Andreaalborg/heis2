@@ -80,10 +80,12 @@ export const AuthProvider = ({ children }) => {
                 const storedUserData = JSON.parse(userString);
                 setUserData(storedUserData);
                 setIsAuthenticated(true);
+                setIsLoading(false);
                 console.log("AuthProvider: Gjennopprettet session for:", storedUserData);
             } catch (e) {
                 console.error("AuthProvider: Feil ved parsing av lagret brukerdata", e);
                 logout(); // Rydd opp hvis brukerdata er korrupt
+                setIsLoading(false);
             }
         } else {
             setIsLoading(false); // Viktig for å unngå evig lastetilstand hvis ingen token

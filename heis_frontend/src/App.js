@@ -128,7 +128,8 @@ const AppContent = () => {
     };
 
     // Ikke vis sidebar/navbar på login
-    const hideNav = window.location.pathname === '/login';
+    const location = useLocation();
+    const hideNav = location.pathname === '/login';
 
     return (
         <ThemeProvider theme={theme}>
@@ -155,13 +156,16 @@ const AppContent = () => {
                     {/* Spacing for toppbar */}
                     {!hideNav && isAuthenticated && <Toolbar />}
                     {/* Innhold */}
-                    <div className="content" style={{
-                        flex: 1,
-                        paddingLeft: (!hideNav && isAuthenticated && !isMobile) ? 220 : 0,
-                        paddingTop: 0,
-                        transition: 'padding-left 0.2s',
-                        minHeight: 'calc(100vh - 64px)'
-                    }}>
+                    <Box 
+                        component="main"
+                        sx={{
+                            flex: 1,
+                            ml: (!hideNav && isAuthenticated && !isMobile) ? `${220}px` : 0,
+                            transition: 'margin-left 0.2s',
+                            minHeight: 'calc(100vh - 64px)',
+                            p: 2
+                        }}
+                    >
                         <Routes>
                             {/* Innloggingsside */}
                             <Route 
@@ -296,7 +300,7 @@ const AppContent = () => {
                                 </div>
                             } />
                         </Routes>
-                    </div>
+                    </Box>
                 </Box>
                 </div>
         </ThemeProvider>
