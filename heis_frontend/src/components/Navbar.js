@@ -13,15 +13,17 @@ import { useAuth } from './Auth';
 
 const Navbar = ({ userRole, onMenuClick, isMobile }) => {
     const navigate = useNavigate();
-    const { logout, userData } = useAuth();
+    const { logout, userData, isAuthenticated, isLoading } = useAuth();
     const username = userData?.username || 'Bruker';
-
+    
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
 
-    if (!userData) return null;
+    if (isLoading || !isAuthenticated) {
+        return null;
+    }
 
     return (
         <AppBar position="fixed" color="primary" elevation={2} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>

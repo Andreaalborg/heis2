@@ -145,8 +145,8 @@ const AppContent = () => {
                 <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
                     {/* Toppbar */}
                     {!hideNav && isAuthenticated && (
-                        <Navbar
-                            isAuthenticated={isAuthenticated}
+                        <Navbar 
+                            isAuthenticated={isAuthenticated} 
                             userRole={userData?.role}
                             onMenuClick={() => setSidebarOpen(true)}
                             isMobile={isMobile}
@@ -298,7 +298,7 @@ const AppContent = () => {
                         </Routes>
                     </div>
                 </Box>
-            </div>
+                </div>
         </ThemeProvider>
     );
 };

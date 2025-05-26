@@ -284,7 +284,7 @@ const Dashboard = () => {
                         disabled={isLoading}
                         sx={{ mb: { xs: 2, md: 0 } }}
                     >
-                        {isLoading ? 'Oppdaterer...' : 'Oppdater'}
+                    {isLoading ? 'Oppdaterer...' : 'Oppdater'}
                     </Button>
                 </Grid>
             </Grid>
@@ -383,7 +383,7 @@ const Dashboard = () => {
                                                         boxShadow: 1,
                                                         textTransform: 'capitalize',
                                                     }}>
-                                                        {getStatusLabel(assignment.status)}
+                                                {getStatusLabel(assignment.status)}
                                                     </Box>
                                                 </TableCell>
                                                 <TableCell>{formatDate(assignment.deadline_date)}</TableCell>

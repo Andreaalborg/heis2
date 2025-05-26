@@ -24,6 +24,7 @@ import FollowUpIcon from '@mui/icons-material/Checklist';
 import ReceiptIcon from '@mui/icons-material/ReceiptLong';
 import InventoryIcon from '@mui/icons-material/Inventory2';
 import AvailabilityIcon from '@mui/icons-material/EventAvailable';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 
 const drawerWidth = 220;
 
@@ -60,6 +61,7 @@ const Sidebar = ({ userRole, open, onClose }) => {
             menuItems.push({ key: 'orders', to: '/orders', text: 'Ordrer', icon: <InventoryIcon /> });
             menuItems.push({ key: 'availability', to: '/availability', text: 'Tilgjengelighet', icon: <AvailabilityIcon /> });
         }
+        menuItems.push({ key: 'camera', to: '/camera', text: 'Kamera', icon: <CameraAltIcon /> });
         // Fjern duplikater basert på key
         return Array.from(new Map(menuItems.map(item => [item.key, item])).values());
     };
