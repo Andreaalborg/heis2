@@ -63,6 +63,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 const AppContent = () => {
     const { isAuthenticated, userData, isLoading } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const location = useLocation();
 
     const theme = createTheme({
         palette: {
@@ -124,7 +125,6 @@ const AppContent = () => {
     };
 
     // Ikke vis sidebar/navbar på login
-    const location = useLocation();
     const hideNav = location.pathname === '/login';
 
     return (
