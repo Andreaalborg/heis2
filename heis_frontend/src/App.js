@@ -1,13 +1,10 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import MenuIcon from '@mui/icons-material/Menu';
-import IconButton from '@mui/material/IconButton';
 
 // Komponenter
 import Navbar from './components/Navbar';
@@ -30,6 +27,7 @@ import AbsenceManagement from './components/AbsenceManagement';
 import TechnicianAvailabilityView from './components/TechnicianAvailabilityView';
 import SalesPipelineBoard from './components/SalesPipelineBoard';
 import SalesFollowUpPlanner from './components/SalesFollowUpPlanner';
+import Camera from './components/Camera';
 import { AuthProvider, useAuth } from './components/Auth'; // Importer AuthProvider og useAuth
 import Sidebar from './components/Sidebar';
 
@@ -40,8 +38,6 @@ import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-
-const AuthContext = createContext(null);
 
 // Tilgangskontroll-komponent
 const ProtectedRoute = ({ children, allowedRoles }) => {
