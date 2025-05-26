@@ -7,10 +7,12 @@ import {
     Alert,
     Card,
     CardContent,
-    CardActions
+    CardActions,
+    Divider
 } from '@mui/material';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 const Camera = () => {
     const [stream, setStream] = useState(null);
@@ -19,6 +21,7 @@ const Camera = () => {
     const [isActive, setIsActive] = useState(false);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const startCamera = useCallback(async () => {
         try {
@@ -152,6 +155,24 @@ const Camera = () => {
         setCapturedImage(null);
     }, []);
 
+    const handleFileUpload = useCallback((event) => {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setCapturedImage(e.target.result);
+                setError('');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setError('Vennligst velg en bildefil');
+        }
+    }, []);
+
+    const openFileDialog = useCallback(() => {
+        fileInputRef.current?.click();
+    }, []);
+
     return (
         <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
             <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -177,7 +198,7 @@ const Camera = () => {
                                 Trykk på knappen nedenfor for å få tilgang til kameraet og ta bilder
                             </Typography>
                         </CardContent>
-                        <CardActions sx={{ justifyContent: 'center', pb: 3 }}>
+                        <CardActions sx={{ justifyContent: 'center', pb: 3, flexDirection: 'column', gap: 2 }}>
                             <Button
                                 variant="contained"
                                 size="large"
@@ -187,6 +208,27 @@ const Camera = () => {
                             >
                                 Start kamera
                             </Button>
+                            
+                            <Divider sx={{ width: '100%' }}>eller</Divider>
+                            
+                            <Button
+                                variant="outlined"
+                                size="large"
+                                startIcon={<CloudUploadIcon />}
+                                onClick={openFileDialog}
+                                sx={{ minWidth: 200 }}
+                            >
+                                Last opp bilde
+                            </Button>
+                            
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                                accept="image/*"
+                                capture="environment"
+                                style={{ display: 'none' }}
+                            />
                         </CardActions>
                     </Card>
                 )}
@@ -270,8 +312,8 @@ const Camera = () => {
             </Paper>
 
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-                Denne funksjonen krever tilgang til enhetens kamera. 
-                Sørg for at du har gitt nettleseren tillatelse til å bruke kameraet.
+                Du kan enten bruke enhetens kamera direkte eller laste opp et eksisterende bilde. 
+                På mobil vil "Last opp bilde" automatisk åpne kameraet.
             </Typography>
         </Box>
     );
