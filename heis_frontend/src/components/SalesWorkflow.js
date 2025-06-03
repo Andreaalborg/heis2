@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AddCustomerModal from './AddCustomerModal';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -26,14 +27,15 @@ const SalesWorkflow = () => {
     const [technicianAvailability, setTechnicianAvailability] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const navigate = useNavigate();
 
     // Service type options
     const serviceTypes = [
-        { value: 'installation', label: 'Heisinstallasjon', estimatedDays: 5, basePrice: 850000 },
-        { value: 'service', label: 'Service/Vedlikehold', estimatedDays: 1, basePrice: 8500 },
-        { value: 'repair', label: 'Reparasjon', estimatedDays: 2, basePrice: 15000 },
-        { value: 'inspection', label: 'Inspeksjon', estimatedDays: 0.5, basePrice: 5000 },
-        { value: 'modernization', label: 'Modernisering', estimatedDays: 7, basePrice: 350000 }
+        { value: 'installation', label: 'Heisinstallasjon', basePrice: 850000 },
+        { value: 'service', label: 'Service/Vedlikehold', basePrice: 8500 },
+        { value: 'repair', label: 'Reparasjon', basePrice: 15000 },
+        { value: 'inspection', label: 'Inspeksjon', basePrice: 5000 },
+        { value: 'modernization', label: 'Modernisering', basePrice: 350000 }
     ];
 
     useEffect(() => {
@@ -41,10 +43,12 @@ const SalesWorkflow = () => {
     }, []);
 
     useEffect(() => {
-        if (workflowData.startDate && workflowData.serviceType) {
-            checkTechnicianAvailability();
+        if (workflowData.startDate && workflowData.endDate && workflowData.serviceType) {
+            if (new Date(workflowData.endDate) >= new Date(workflowData.startDate)) {
+                checkTechnicianAvailability();
+            }
         }
-    }, [workflowData.startDate, workflowData.serviceType]);
+    }, [workflowData.startDate, workflowData.endDate, workflowData.serviceType]);
 
     const fetchInitialData = async () => {
         try {
@@ -70,31 +74,16 @@ const SalesWorkflow = () => {
     };
 
     const checkTechnicianAvailability = async () => {
-        if (!workflowData.startDate) return;
+        if (!workflowData.startDate || !workflowData.endDate) return;
 
         setIsLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const serviceType = serviceTypes.find(s => s.value === workflowData.serviceType);
-            const estimatedDays = serviceType?.estimatedDays || 1;
-            
-            // Beregn sluttdato basert på estimerte dager
-            const startDate = new Date(workflowData.startDate);
-            const endDate = new Date(startDate);
-            endDate.setDate(startDate.getDate() + Math.ceil(estimatedDays));
-            
-            // Oppdater workflow data med beregnet sluttdato
-            setWorkflowData(prev => ({
-                ...prev,
-                endDate: endDate.toISOString().split('T')[0]
-            }));
-
-            // Sjekk tilgjengelighet for hver tekniker
             const availability = {};
             for (const tech of technicians) {
                 try {
                     const response = await axios.get(
-                        `${API_BASE_URL}/api/assignments/?assigned_to=${tech.id}&start_date=${workflowData.startDate}&end_date=${endDate.toISOString().split('T')[0]}`,
+                        `${API_BASE_URL}/api/assignments/?assigned_to=${tech.id}&start_date=${workflowData.startDate}&end_date=${workflowData.endDate}`,
                         { headers: { 'Authorization': `Token ${token}` } }
                     );
                     const assignments = response.data.results || response.data;
@@ -104,7 +93,7 @@ const SalesWorkflow = () => {
                         assignments: assignments
                     };
                 } catch (error) {
-                    availability[tech.id] = { isAvailable: false, error: true };
+                    availability[tech.id] = { isAvailable: false, error: true, conflictingAssignments: 0 };
                 }
             }
             setTechnicianAvailability(availability);
@@ -125,15 +114,14 @@ const SalesWorkflow = () => {
             [field]: value
         }));
 
-        // Auto-kalkuler estimert verdi basert på service type og heistype
         if (field === 'serviceType' || field === 'elevatorType') {
-            const serviceType = serviceTypes.find(s => s.value === (field === 'serviceType' ? value : workflowData.serviceType));
-            const elevatorType = elevatorTypes.find(e => e.id === parseInt(field === 'elevatorType' ? value : workflowData.elevatorType));
+            const serviceConf = serviceTypes.find(s => s.value === (field === 'serviceType' ? value : workflowData.serviceType));
+            const elevatorConf = elevatorTypes.find(e => e.id === parseInt(field === 'elevatorType' ? value : workflowData.elevatorType));
             
-            if (serviceType) {
-                let estimatedValue = serviceType.basePrice;
-                if (elevatorType && elevatorType.price) {
-                    estimatedValue = serviceType.value === 'installation' ? elevatorType.price : serviceType.basePrice;
+            if (serviceConf) {
+                let estimatedValue = serviceConf.basePrice;
+                if (workflowData.serviceType === 'installation' && elevatorConf && elevatorConf.price) {
+                    estimatedValue = elevatorConf.price;
                 }
                 setWorkflowData(prev => ({
                     ...prev,
@@ -177,58 +165,57 @@ const SalesWorkflow = () => {
             const token = localStorage.getItem('token');
             const headers = { 'Authorization': `Token ${token}` };
 
-            // Sjekk om beskrivelse er tom, og sett en standard hvis det er kritisk for backend
-            // For nå, stoler vi på validering i canProceedToNextStep og required på feltet
             const finalDescription = workflowData.description.trim() === '' ? 
-                `Oppdrag for ${workflowData.customer.name} - ${serviceTypes.find(s => s.value === workflowData.serviceType)?.label}` : 
+                `Tilbud for ${workflowData.customer.name} - ${serviceTypes.find(s => s.value === workflowData.serviceType)?.label}` : 
                 workflowData.description;
 
-            // Opprett salgsmulighet
+            // 1. Opprett Salgsmulighet
             const opportunityData = {
                 name: `${workflowData.customer.name} - ${serviceTypes.find(s => s.value === workflowData.serviceType)?.label}`,
                 customer: workflowData.customer.id,
-                description: finalDescription, // Bruk finalDescription her også, eller workflowData.description om den kan være tom for opportunity
-                status: 'contacted',
+                description: finalDescription,
+                status: 'proposal',
                 estimated_value: workflowData.estimatedValue
             };
-
             const oppResponse = await axios.post(`${API_BASE_URL}/api/sales-opportunities/`, opportunityData, { headers });
+            const newOpportunityId = oppResponse.data.id;
 
-            // Opprett oppdrag
-            const assignmentData = {
-                title: `${serviceTypes.find(s => s.value === workflowData.serviceType)?.label} - ${workflowData.customer.name}`,
-                description: finalDescription, // Bruker finalDescription
-                customer: workflowData.customer.id,
-                assignment_type: workflowData.serviceType,
-                assigned_to: parseInt(workflowData.assignedTechnician),
-                scheduled_date: `${workflowData.startDate}T09:00:00`,
-                deadline_date: workflowData.endDate,
-                priority: workflowData.priority,
-                status: 'pending'
+            // 2. Opprett Tilbud (Quote)
+            const internalNotes = `Foreslått tekniker: ${technicians.find(t => t.id === parseInt(workflowData.assignedTechnician))?.first_name || 'Ikke valgt'}. Foreslått periode: ${workflowData.startDate} til ${workflowData.endDate}. Prioritet: ${workflowData.priority}.`;
+            const quoteData = {
+                opportunity: newOpportunityId,
+                status: 'draft',
+                notes: internalNotes,
+                customer_notes: finalDescription,
+                total_amount: workflowData.estimatedValue,
             };
+            const quoteResponse = await axios.post(`${API_BASE_URL}/api/quotes/`, quoteData, { headers });
+            const newQuoteId = quoteResponse.data.id;
 
-            await axios.post(`${API_BASE_URL}/api/assignments/`, assignmentData, { headers });
+            // 3. (Valgfritt) Opprett QuoteLineItem hvis det er en installasjon
+            if (workflowData.serviceType === 'installation' && workflowData.elevatorType) {
+                const lineItemData = {
+                    quote: newQuoteId,
+                    elevator_type: parseInt(workflowData.elevatorType),
+                    quantity: 1
+                };
+                await axios.post(`${API_BASE_URL}/api/quotelineitems/`, lineItemData, { headers });
+            }
 
-            alert('Kunde og oppdrag opprettet vellykket!');
+            alert('Tilbud opprettet vellykket!');
             
-            // Reset workflow
-            setWorkflowData({
-                customer: null,
-                isNewCustomer: false,
-                serviceType: '',
-                elevatorType: '',
-                description: '',
-                estimatedValue: '',
-                startDate: '',
-                endDate: '',
-                assignedTechnician: '',
-                priority: 'medium'
-            });
+            // Reset workflow og naviger til det nye tilbudet
             setCurrentStep(1);
+            setWorkflowData({
+                customer: null, isNewCustomer: false, serviceType: '', elevatorType: '', description: '',
+                estimatedValue: '', startDate: '', endDate: '', assignedTechnician: '', priority: 'medium'
+            });
+            navigate(`/quotes/${newQuoteId}`);
+
         } catch (error) {
-            console.error('Feil ved opprettelse:', error);
+            console.error('Feil ved opprettelse av tilbud:', error);
             console.error('Response data:', error.response?.data);
-            let errorMessage = 'Feil ved opprettelse av kunde/oppdrag.';
+            let errorMessage = 'Feil ved opprettelse av tilbud.';
             if (error.response?.data) {
                 const fieldErrors = Object.entries(error.response.data)
                     .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
@@ -251,7 +238,10 @@ const SalesWorkflow = () => {
         switch (currentStep) {
             case 1: return workflowData.customer !== null;
             case 2: return workflowData.serviceType !== '' && workflowData.description.trim() !== '';
-            case 3: return workflowData.startDate !== '' && workflowData.endDate !== '';
+            case 3: 
+                return workflowData.startDate !== '' && 
+                       workflowData.endDate !== '' && 
+                       new Date(workflowData.endDate) >= new Date(workflowData.startDate);
             case 4: return workflowData.assignedTechnician !== '';
             default: return false;
         }
@@ -262,7 +252,7 @@ const SalesWorkflow = () => {
             <div className="row">
                 <div className="col-md-12">
                     <h2>Kunde til Oppdrag - Arbeidsflyt</h2>
-                    <p className="text-muted">Guide for å opprette nye kunder og planlegge oppdrag</p>
+                    <p className="text-muted">Guide for å opprette nye kunder og klargjøre tilbud</p>
 
                     {/* Improved Progress Stepper */}
                     <div className="card mb-4">
@@ -272,8 +262,8 @@ const SalesWorkflow = () => {
                                     { step: 1, title: 'Velg Kunde', icon: 'fas fa-user' },
                                     { step: 2, title: 'Velg Tjeneste', icon: 'fas fa-cogs' },
                                     { step: 3, title: 'Planlegg Dato', icon: 'fas fa-calendar' },
-                                    { step: 4, title: 'Velg Tekniker', icon: 'fas fa-hard-hat' },
-                                    { step: 5, title: 'Fullført', icon: 'fas fa-check' }
+                                    { step: 4, title: 'Foreslå Tekniker', icon: 'fas fa-hard-hat' },
+                                    { step: 5, title: 'Fullfør Tilbud', icon: 'fas fa-file-signature' }
                                 ].map(({ step, title, icon }, index, arr) => (
                                     <React.Fragment key={step}>
                                         <div className="col text-center">
@@ -291,7 +281,7 @@ const SalesWorkflow = () => {
                                             <div className="col-auto px-0" style={{ flexGrow: 1}}>
                                                 <div 
                                                     className={`progress-line ${currentStep > step ? 'bg-primary' : 'bg-light'}`}
-                                                    style={{height: '4px', width: '100%', marginTop: '25px' /* Align with middle of circles */}}
+                                                    style={{height: '4px', width: '100%', marginTop: '25px'}}
                                                 ></div>
                                             </div>
                                         )}
@@ -346,7 +336,7 @@ const SalesWorkflow = () => {
                             {/* Steg 2: Velg Tjeneste */}
                             {currentStep === 2 && (
                                 <div>
-                                    <h4>Steg 2: Velg Tjeneste</h4>
+                                    <h4>Steg 2: Spesifiser Tjeneste</h4>
                                     <div className="row">
                                         {serviceTypes.map(service => (
                                             <div key={service.value} className="col-md-4 mb-3">
@@ -357,7 +347,6 @@ const SalesWorkflow = () => {
                                                 >
                                                     <div className="card-body text-center">
                                                         <h5>{service.label}</h5>
-                                                        <p className="text-muted">Ca. {service.estimatedDays} dag(er)</p>
                                                         <p className="h6">Fra {service.basePrice.toLocaleString()} kr</p>
                                                     </div>
                                                 </div>
@@ -390,49 +379,53 @@ const SalesWorkflow = () => {
                                             rows="3"
                                             value={workflowData.description}
                                             onChange={(e) => handleInputChange('description', e.target.value)}
-                                            placeholder="Beskriv oppdraget... (Påkrevd)"
+                                            placeholder="Beskriv oppdraget/tjenesten... (Påkrevd)"
                                             required
                                         />
                                     </div>
 
                                     {workflowData.estimatedValue && (
                                         <div className="alert alert-info mt-3">
-                                            <strong>Estimert verdi: {workflowData.estimatedValue.toLocaleString()} kr</strong>
+                                            <strong>Estimert verdi for tilbud: {workflowData.estimatedValue.toLocaleString()} kr</strong>
                                         </div>
                                     )}
                                 </div>
                             )}
 
-                            {/* Steg 3: Planlegg Dato */}
+                            {/* Steg 3: Planlegg Dato (Manuell) */}
                             {currentStep === 3 && (
                                 <div>
-                                    <h4>Steg 3: Planlegg Oppdrag</h4>
+                                    <h4>Steg 3: Foreslå Periode for Tilbud</h4>
                                     <div className="row">
                                         <div className="col-md-6">
-                                            <label className="form-label">Startdato:</label>
+                                            <label className="form-label">Foreslått startdato *:</label>
                                             <input 
                                                 type="date"
                                                 className="form-control"
                                                 value={workflowData.startDate}
                                                 onChange={(e) => handleInputChange('startDate', e.target.value)}
                                                 min={new Date().toISOString().split('T')[0]}
+                                                required
                                             />
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label">Estimert sluttdato:</label>
+                                            <label className="form-label">Foreslått sluttdato *:</label>
                                             <input 
                                                 type="date"
                                                 className="form-control"
                                                 value={workflowData.endDate}
                                                 onChange={(e) => handleInputChange('endDate', e.target.value)}
-                                                readOnly
+                                                min={workflowData.startDate || new Date().toISOString().split('T')[0]}
+                                                required
                                             />
-                                            <small className="text-muted">Beregnet automatisk basert på tjenestetype</small>
+                                            {workflowData.startDate && workflowData.endDate && new Date(workflowData.endDate) < new Date(workflowData.startDate) && (
+                                                <small className="text-danger">Sluttdato kan ikke være før startdato.</small>
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="mt-3">
-                                        <label className="form-label">Prioritet:</label>
+                                        <label className="form-label">Prioritet (for internt bruk):</label>
                                         <select 
                                             className="form-select"
                                             value={workflowData.priority}
@@ -447,10 +440,11 @@ const SalesWorkflow = () => {
                                 </div>
                             )}
 
-                            {/* Steg 4: Velg Tekniker */}
+                            {/* Steg 4: Velg Tekniker (med visuell markering) */}
                             {currentStep === 4 && (
                                 <div>
-                                    <h4>Steg 4: Velg Tekniker</h4>
+                                    <h4>Steg 4: Foreslå Tekniker (valgfritt)</h4>
+                                    <p className="text-muted">Velg en tekniker som foreslås for oppdraget. Dette kan endres senere.</p>
                                     {isLoading ? (
                                         <p>Sjekker tilgjengelighet...</p>
                                     ) : (
@@ -458,13 +452,14 @@ const SalesWorkflow = () => {
                                             {technicians.map(tech => {
                                                 const availability = technicianAvailability[tech.id];
                                                 const isAvailable = availability?.isAvailable;
+                                                const isSelected = parseInt(workflowData.assignedTechnician) === tech.id;
                                                 
                                                 return (
                                                     <div key={tech.id} className="col-md-6 mb-3">
                                                         <div 
-                                                            className={`card ${workflowData.assignedTechnician === tech.id ? 'border-primary' : ''} ${!isAvailable ? 'bg-light' : ''}`}
-                                                            style={{cursor: isAvailable ? 'pointer' : 'not-allowed'}}
-                                                            onClick={() => isAvailable && handleInputChange('assignedTechnician', tech.id)}
+                                                            className={`card ${isSelected ? 'border-primary shadow-sm' : ''} ${!isAvailable && !isSelected ? 'bg-light opacity-75' : ''}`}
+                                                            style={{cursor: isAvailable || isSelected ? 'pointer' : 'not-allowed'}}
+                                                            onClick={() => (isAvailable || isSelected) && handleInputChange('assignedTechnician', tech.id)}
                                                         >
                                                             <div className="card-body">
                                                                 <div className="d-flex justify-content-between align-items-start">
@@ -472,13 +467,18 @@ const SalesWorkflow = () => {
                                                                         <h6>{tech.first_name} {tech.last_name}</h6>
                                                                         <small className="text-muted">{tech.email}</small>
                                                                     </div>
-                                                                    <span className={`badge ${isAvailable ? 'bg-success' : 'bg-danger'}`}>
-                                                                        {isAvailable ? 'Ledig' : 'Opptatt'}
-                                                                    </span>
+                                                                    <div>
+                                                                        {isSelected && (
+                                                                            <i className="fas fa-check-circle text-success me-2" style={{fontSize: '1.2rem'}}></i>
+                                                                        )}
+                                                                        <span className={`badge ${isAvailable ? 'bg-success' : 'bg-danger'}`}>
+                                                                            {isAvailable ? 'Ledig' : `Opptatt (${availability?.conflictingAssignments || 0})`}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                                 {!isAvailable && availability?.conflictingAssignments > 0 && (
-                                                                    <small className="text-danger">
-                                                                        {availability.conflictingAssignments} konflikterende oppdrag
+                                                                    <small className="text-danger d-block mt-1">
+                                                                        Har {availability.conflictingAssignments} oppdrag i perioden.
                                                                     </small>
                                                                 )}
                                                             </div>
@@ -491,23 +491,31 @@ const SalesWorkflow = () => {
                                 </div>
                             )}
 
-                            {/* Steg 5: Oppsummering */}
+                            {/* Steg 5: Oppsummering og Lag Tilbud */}
                             {currentStep === 5 && (
                                 <div>
-                                    <h4>Steg 5: Oppsummering</h4>
+                                    <h4>Steg 5: Oppsummering og Klargjør Tilbud</h4>
                                     <div className="alert alert-info">
-                                        <h5>Klar til å opprette oppdrag!</h5>
+                                        <h5>Vennligst se over detaljene før du oppretter tilbudet:</h5>
                                         <hr />
                                         <div className="row">
                                             <div className="col-md-6">
                                                 <p><strong>Kunde:</strong> {workflowData.customer?.name}</p>
                                                 <p><strong>Tjeneste:</strong> {serviceTypes.find(s => s.value === workflowData.serviceType)?.label}</p>
-                                                <p><strong>Periode:</strong> {workflowData.startDate} til {workflowData.endDate}</p>
+                                                {workflowData.serviceType === 'installation' && workflowData.elevatorType && (
+                                                    <p><strong>Heistype:</strong> {elevatorTypes.find(et => et.id === parseInt(workflowData.elevatorType))?.name}</p>
+                                                )}
+                                                <p><strong>Beskrivelse:</strong> {workflowData.description}</p>
                                             </div>
                                             <div className="col-md-6">
-                                                <p><strong>Tekniker:</strong> {technicians.find(t => t.id === parseInt(workflowData.assignedTechnician))?.first_name} {technicians.find(t => t.id === parseInt(workflowData.assignedTechnician))?.last_name}</p>
-                                                <p><strong>Estimert verdi:</strong> {workflowData.estimatedValue?.toLocaleString()} kr</p>
-                                                <p><strong>Prioritet:</strong> {workflowData.priority}</p>
+                                                <p><strong>Foreslått Periode:</strong> {workflowData.startDate || 'Ikke satt'} til {workflowData.endDate || 'Ikke satt'}</p>
+                                                <p><strong>Foreslått Tekniker:</strong> 
+                                                    {workflowData.assignedTechnician 
+                                                        ? `${technicians.find(t => t.id === parseInt(workflowData.assignedTechnician))?.first_name} ${technicians.find(t => t.id === parseInt(workflowData.assignedTechnician))?.last_name}`
+                                                        : 'Ikke valgt'}
+                                                </p>
+                                                <p><strong>Estimert Verdi:</strong> {workflowData.estimatedValue?.toLocaleString()} kr</p>
+                                                <p><strong>Intern Prioritet:</strong> {workflowData.priority}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -536,10 +544,10 @@ const SalesWorkflow = () => {
                                     <button 
                                         className="btn btn-success"
                                         onClick={handleFinishWorkflow}
-                                        disabled={isLoading}
+                                        disabled={isLoading || !canProceedToNextStep()}
                                     >
-                                        {isLoading ? 'Oppretter...' : 'Opprett Oppdrag'}
-                                        <i className="fas fa-check ms-2"></i>
+                                        {isLoading ? 'Oppretter Tilbud...' : 'Opprett Tilbud'}
+                                        <i className="fas fa-file-signature ms-2"></i>
                                     </button>
                                 )}
                             </div>
