@@ -25,6 +25,7 @@ import ReceiptIcon from '@mui/icons-material/ReceiptLong';
 import InventoryIcon from '@mui/icons-material/Inventory2';
 import AvailabilityIcon from '@mui/icons-material/EventAvailable';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import AutoModeIcon from '@mui/icons-material/AutoMode';
 
 const drawerWidth = 220;
 
@@ -57,6 +58,7 @@ const Sidebar = ({ userRole, open, onClose }) => {
             menuItems.push({ key: 'sales-opportunities', to: '/sales-opportunities', text: 'Salgsmuligheter', icon: <HandshakeIcon /> });
             menuItems.push({ key: 'sales-pipeline', to: '/sales-pipeline', text: 'Salgspipeline', icon: <PipelineIcon /> });
             menuItems.push({ key: 'sales-follow-up', to: '/sales-follow-up', text: 'Oppfølgingsplan', icon: <FollowUpIcon /> });
+            menuItems.push({ key: 'sales-automation', to: '/sales-automation', text: 'Salgsautomatisering', icon: <AutoModeIcon /> });
             menuItems.push({ key: 'quotes', to: '/quotes', text: 'Tilbud', icon: <ReceiptIcon /> });
             menuItems.push({ key: 'orders', to: '/orders', text: 'Ordrer', icon: <InventoryIcon /> });
             menuItems.push({ key: 'availability', to: '/availability', text: 'Tilgjengelighet', icon: <AvailabilityIcon /> });

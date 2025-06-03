@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-const AddEditOpportunityModal = ({ isOpen, onClose, onSave, opportunityToEdit }) => {
+const AddEditOpportunityModal = ({ isOpen, onClose, onSave, opportunityToEdit, preselectedCustomerId }) => {
     const [name, setName] = useState('');
     const [customerId, setCustomerId] = useState('');
     const [description, setDescription] = useState('');
@@ -45,12 +45,12 @@ const AddEditOpportunityModal = ({ isOpen, onClose, onSave, opportunityToEdit })
         } else {
             // Reset skjema når vi legger til ny
             setName('');
-            setCustomerId('');
+            setCustomerId(preselectedCustomerId || ''); // Bruk forhåndsvalgt kunde hvis tilgjengelig
             setDescription('');
             setStatus('new');
             setEstimatedValue('');
         }
-    }, [opportunityToEdit, isOpen]); // Kjør når opportunityToEdit eller isOpen endres
+    }, [opportunityToEdit, isOpen, preselectedCustomerId]); // Kjør når opportunityToEdit, isOpen eller preselectedCustomerId endres
 
     const fetchCustomers = async () => {
         setIsLoading(true);

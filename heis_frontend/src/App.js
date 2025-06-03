@@ -27,6 +27,7 @@ import AbsenceManagement from './components/AbsenceManagement';
 import TechnicianAvailabilityView from './components/TechnicianAvailabilityView';
 import SalesPipelineBoard from './components/SalesPipelineBoard';
 import SalesFollowUpPlanner from './components/SalesFollowUpPlanner';
+import SalesAutomation from './components/SalesAutomation';
 import Camera from './components/Camera';
 import { AuthProvider, useAuth } from './components/Auth'; // Importer AuthProvider og useAuth
 import Sidebar from './components/Sidebar';
@@ -245,6 +246,13 @@ const AppContent = () => {
                             <Route path="/sales-follow-up" element={
                                 <ProtectedRoute allowedRoles={['admin', 'selger']}>
                                     <SalesFollowUpPlanner />
+                                </ProtectedRoute>
+                            } />
+                            
+                            {/* Salgsautomatisering (Admin, Selger) */}
+                            <Route path="/sales-automation" element={
+                                <ProtectedRoute allowedRoles={['admin', 'selger']}>
+                                    <SalesAutomation />
                                 </ProtectedRoute>
                             } />
                             
