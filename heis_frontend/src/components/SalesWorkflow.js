@@ -199,7 +199,8 @@ const SalesWorkflow = () => {
                     elevator_type: parseInt(workflowData.elevatorType),
                     quantity: 1
                 };
-                await axios.post(`${API_BASE_URL}/api/quotelineitems/`, lineItemData, { headers });
+                console.log('Forsøker å opprette QuoteLineItem med data:', lineItemData);
+                await axios.post(`${API_BASE_URL}/api/quote-line-items/`, lineItemData, { headers });
             }
 
             alert('Tilbud opprettet vellykket!');

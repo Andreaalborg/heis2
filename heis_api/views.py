@@ -380,11 +380,22 @@ class QuoteViewSet(viewsets.ModelViewSet):
 
 class QuoteLineItemViewSet(viewsets.ModelViewSet):
     """ API endpoint for tilbudslinjer. """
-    queryset = QuoteLineItem.objects.all().select_related('elevator_type') # select_related for FK
+    queryset = QuoteLineItem.objects.all().select_related('elevator_type')
     serializer_class = QuoteLineItemSerializer
-    permission_classes = [permissions.IsAuthenticated] # Bør justeres
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['quote'] # Filtrer linjer basert på tilbud
+    filterset_fields = ['quote']
+
+    def create(self, request, *args, **kwargs):
+        print("DEBUG: QuoteLineItemViewSet create method CALLED")
+        print("DEBUG: Request data:", request.data)
+        # Bare for testing, IKKE bruk i produksjon uten validering:
+        # serializer = self.get_serializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        # self.perform_create(serializer)
+        # headers = self.get_success_headers(serializer.data)
+        # return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response({"message": "Test create called successfully"}, status=status.HTTP_201_CREATED)
 
 class QuotePDFView(View):
     """ Genererer en PDF-versjon av et spesifikt tilbud. """
