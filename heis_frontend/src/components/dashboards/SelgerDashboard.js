@@ -112,6 +112,32 @@ const SelgerDashboard = () => {
                 </div>
             </div>
 
+            {/* Hurtigstart for nyoppstartet bedrift */}
+            <div className="row mb-4">
+                <div className="col-md-12">
+                    <div className="card border-success">
+                        <div className="card-header bg-success text-white">
+                            <h5 className="mb-0">
+                                <i className="fas fa-rocket me-2"></i>
+                                Hurtigstart - Fra ny kunde til oppdrag
+                            </h5>
+                        </div>
+                        <div className="card-body text-center">
+                            <p className="card-text">
+                                Perfekt for nyoppstartede bedrifter! Guidet arbeidsflyt som tar deg fra ny kunde til ferdig planlagt oppdrag.
+                            </p>
+                            <button 
+                                className="btn btn-success btn-lg"
+                                onClick={() => navigate('/sales-workflow')}
+                            >
+                                <i className="fas fa-play me-2"></i>
+                                Start Kunde til Oppdrag
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Statistikk-kort */}
             <div className="row mb-4">
                 <div className="col-md-3">
@@ -148,9 +174,10 @@ const SelgerDashboard = () => {
                 </div>
             </div>
 
-            {/* Hurtigtilgang til kunder */}
+            {/* Hurtigtilgang og verktøy */}
             <div className="row mb-4">
-                <div className="col-md-12">
+                <div className="col-md-6">
+                    {/* Hurtigtilgang til kunder */}
                     <div className="card">
                         <div className="card-header d-flex justify-content-between align-items-center">
                             <h5 className="mb-0">Siste kunder</h5>
@@ -174,6 +201,39 @@ const SelgerDashboard = () => {
                                         </button>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-md-6">
+                    {/* Hurtigverktøy */}
+                    <div className="card">
+                        <div className="card-header">
+                            <h5 className="mb-0">Hurtigverktøy</h5>
+                        </div>
+                        <div className="card-body">
+                            <div className="d-grid gap-2">
+                                <button 
+                                    className="btn btn-outline-primary"
+                                    onClick={() => navigate('/sales-automation')}
+                                >
+                                    <i className="fas fa-robot me-2"></i>
+                                    Salgsautomatisering
+                                </button>
+                                <button 
+                                    className="btn btn-outline-info"
+                                    onClick={() => navigate('/sales-pipeline')}
+                                >
+                                    <i className="fas fa-chart-line me-2"></i>
+                                    Salgspipeline
+                                </button>
+                                <button 
+                                    className="btn btn-outline-success"
+                                    onClick={() => navigate('/availability')}
+                                >
+                                    <i className="fas fa-calendar-check me-2"></i>
+                                    Tekniker tilgjengelighet
+                                </button>
                             </div>
                         </div>
                     </div>

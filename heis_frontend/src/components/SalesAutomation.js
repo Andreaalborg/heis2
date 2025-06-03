@@ -38,8 +38,13 @@ const SalesAutomation = () => {
     useEffect(() => {
         fetchOpportunities();
         fetchCustomers();
-        generateReminders();
     }, []);
+
+    useEffect(() => {
+        if (opportunities.length > 0) {
+            generateReminders();
+        }
+    }, [opportunities]);
 
     const fetchOpportunities = async () => {
         try {
