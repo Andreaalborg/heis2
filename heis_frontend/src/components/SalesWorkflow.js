@@ -234,17 +234,34 @@ const SalesWorkflow = () => {
         }
     };
 
-    const canProceedToNextStep = () => {
-        switch (currentStep) {
-            case 1: return workflowData.customer !== null;
-            case 2: return workflowData.serviceType !== '' && workflowData.description.trim() !== '';
+    const canProceedToNextStep = (targetStep) => {
+        const stepToValidate = targetStep ? targetStep -1 : currentStep;
+        switch (stepToValidate) {
+            case 1: 
+                return workflowData.customer !== null;
+            case 2: 
+                return workflowData.serviceType !== '' && workflowData.description.trim() !== '';
             case 3: 
                 return workflowData.startDate !== '' && 
                        workflowData.endDate !== '' && 
                        new Date(workflowData.endDate) >= new Date(workflowData.startDate);
-            case 4: return workflowData.assignedTechnician !== '';
-            default: return false;
+            case 4: 
+                // Foreslått tekniker er valgfritt, så vi returnerer alltid true her hvis vi har kommet så langt.
+                // Hvis det var påkrevd, ville det vært: workflowData.assignedTechnician !== ''
+                return true; 
+            default: 
+                return false;
         }
+    };
+
+    // Funksjon for å sjekke om alle *tidligere* steg er gyldige
+    const arePreviousStepsValid = (upToStep) => {
+        for (let i = 1; i < upToStep; i++) {
+            if (!canProceedToNextStep(i + 1)) { // Sjekker om vi KAN gå TIL neste steg fra i
+                return false;
+            }
+        }
+        return true;
     };
 
     return (
@@ -544,7 +561,7 @@ const SalesWorkflow = () => {
                                     <button 
                                         className="btn btn-success"
                                         onClick={handleFinishWorkflow}
-                                        disabled={isLoading || !canProceedToNextStep()}
+                                        disabled={isLoading || !arePreviousStepsValid(5)}
                                     >
                                         {isLoading ? 'Oppretter Tilbud...' : 'Opprett Tilbud'}
                                         <i className="fas fa-file-signature ms-2"></i>
