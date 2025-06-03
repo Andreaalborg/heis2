@@ -194,7 +194,7 @@ const SalesWorkflow = () => {
                 description: workflowData.description,
                 customer: workflowData.customer.id,
                 assignment_type: workflowData.serviceType,
-                assigned_to: workflowData.assignedTechnician,
+                assigned_to: parseInt(workflowData.assignedTechnician),
                 scheduled_date: `${workflowData.startDate}T09:00:00`,
                 deadline_date: workflowData.endDate,
                 priority: workflowData.priority,
@@ -203,7 +203,7 @@ const SalesWorkflow = () => {
 
             await axios.post(`${API_BASE_URL}/api/assignments/`, assignmentData, { headers });
 
-            alert('Kunde og oppdrag opprettet successfully!');
+            alert('Kunde og oppdrag opprettet vellykket!');
             
             // Reset workflow
             setWorkflowData({
@@ -221,7 +221,8 @@ const SalesWorkflow = () => {
             setCurrentStep(1);
         } catch (error) {
             console.error('Feil ved opprettelse:', error);
-            alert('Feil ved opprettelse av kunde/oppdrag');
+            console.error('Response data:', error.response?.data);
+            alert(`Feil ved opprettelse av kunde/oppdrag: ${error.response?.data?.detail || error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -244,25 +245,38 @@ const SalesWorkflow = () => {
                     <h2>Kunde til Oppdrag - Arbeidsflyt</h2>
                     <p className="text-muted">Guide for å opprette nye kunder og planlegge oppdrag</p>
 
-                    {/* Progress Steps */}
+                    {/* Improved Progress Stepper */}
                     <div className="card mb-4">
                         <div className="card-body">
-                            <div className="d-flex justify-content-between">
+                            <div className="row align-items-center">
                                 {[
                                     { step: 1, title: 'Velg Kunde', icon: 'fas fa-user' },
                                     { step: 2, title: 'Velg Tjeneste', icon: 'fas fa-cogs' },
                                     { step: 3, title: 'Planlegg Dato', icon: 'fas fa-calendar' },
                                     { step: 4, title: 'Velg Tekniker', icon: 'fas fa-hard-hat' },
                                     { step: 5, title: 'Fullført', icon: 'fas fa-check' }
-                                ].map(({ step, title, icon }) => (
-                                    <div key={step} className={`text-center ${currentStep >= step ? 'text-primary' : 'text-muted'}`}>
-                                        <div className={`rounded-circle d-inline-flex align-items-center justify-content-center mb-2 ${
-                                            currentStep >= step ? 'bg-primary text-white' : 'bg-light'
-                                        }`} style={{width: '50px', height: '50px'}}>
-                                            <i className={icon}></i>
+                                ].map(({ step, title, icon }, index, arr) => (
+                                    <React.Fragment key={step}>
+                                        <div className="col text-center">
+                                            <div 
+                                                className={`rounded-circle d-inline-flex align-items-center justify-content-center mb-2 ${
+                                                    currentStep >= step ? 'bg-primary text-white' : 'bg-light text-muted'
+                                                }`}
+                                                style={{width: '50px', height: '50px', border: currentStep === step ? '2px solid var(--bs-primary)' : '2px solid #dee2e6'}}
+                                            >
+                                                <i className={icon} style={{fontSize: '1.25rem'}}></i>
+                                            </div>
+                                            <div className={`small ${currentStep >= step ? 'fw-bold text-primary' : 'text-muted'}`}>{title}</div>
                                         </div>
-                                        <div className="small">{title}</div>
-                                    </div>
+                                        {index < arr.length - 1 && (
+                                            <div className="col-auto px-0" style={{ flexGrow: 1}}>
+                                                <div 
+                                                    className={`progress-line ${currentStep > step ? 'bg-primary' : 'bg-light'}`}
+                                                    style={{height: '4px', width: '100%', marginTop: '25px' /* Align with middle of circles */}}
+                                                ></div>
+                                            </div>
+                                        )}
+                                    </React.Fragment>
                                 ))}
                             </div>
                         </div>
