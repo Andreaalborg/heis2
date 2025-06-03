@@ -177,11 +177,17 @@ const SalesWorkflow = () => {
             const token = localStorage.getItem('token');
             const headers = { 'Authorization': `Token ${token}` };
 
+            // Sjekk om beskrivelse er tom, og sett en standard hvis det er kritisk for backend
+            // For nå, stoler vi på validering i canProceedToNextStep og required på feltet
+            const finalDescription = workflowData.description.trim() === '' ? 
+                `Oppdrag for ${workflowData.customer.name} - ${serviceTypes.find(s => s.value === workflowData.serviceType)?.label}` : 
+                workflowData.description;
+
             // Opprett salgsmulighet
             const opportunityData = {
                 name: `${workflowData.customer.name} - ${serviceTypes.find(s => s.value === workflowData.serviceType)?.label}`,
                 customer: workflowData.customer.id,
-                description: workflowData.description,
+                description: finalDescription, // Bruk finalDescription her også, eller workflowData.description om den kan være tom for opportunity
                 status: 'contacted',
                 estimated_value: workflowData.estimatedValue
             };
@@ -191,7 +197,7 @@ const SalesWorkflow = () => {
             // Opprett oppdrag
             const assignmentData = {
                 title: `${serviceTypes.find(s => s.value === workflowData.serviceType)?.label} - ${workflowData.customer.name}`,
-                description: workflowData.description,
+                description: finalDescription, // Bruker finalDescription
                 customer: workflowData.customer.id,
                 assignment_type: workflowData.serviceType,
                 assigned_to: parseInt(workflowData.assignedTechnician),
@@ -222,7 +228,20 @@ const SalesWorkflow = () => {
         } catch (error) {
             console.error('Feil ved opprettelse:', error);
             console.error('Response data:', error.response?.data);
-            alert(`Feil ved opprettelse av kunde/oppdrag: ${error.response?.data?.detail || error.message}`);
+            let errorMessage = 'Feil ved opprettelse av kunde/oppdrag.';
+            if (error.response?.data) {
+                const fieldErrors = Object.entries(error.response.data)
+                    .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+                    .join('; ');
+                if (fieldErrors) {
+                    errorMessage += ` Detaljer: ${fieldErrors}`;
+                } else if (error.response.data.detail) {
+                    errorMessage += ` Detaljer: ${error.response.data.detail}`;
+                }
+            } else if (error.message) {
+                errorMessage += ` (${error.message})`;
+            }
+            alert(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -231,7 +250,7 @@ const SalesWorkflow = () => {
     const canProceedToNextStep = () => {
         switch (currentStep) {
             case 1: return workflowData.customer !== null;
-            case 2: return workflowData.serviceType !== '';
+            case 2: return workflowData.serviceType !== '' && workflowData.description.trim() !== '';
             case 3: return workflowData.startDate !== '' && workflowData.endDate !== '';
             case 4: return workflowData.assignedTechnician !== '';
             default: return false;
@@ -365,13 +384,14 @@ const SalesWorkflow = () => {
                                     )}
 
                                     <div className="mt-3">
-                                        <label className="form-label">Beskrivelse:</label>
+                                        <label className="form-label">Beskrivelse *:</label>
                                         <textarea 
                                             className="form-control"
                                             rows="3"
                                             value={workflowData.description}
                                             onChange={(e) => handleInputChange('description', e.target.value)}
-                                            placeholder="Beskriv oppdraget..."
+                                            placeholder="Beskriv oppdraget... (Påkrevd)"
+                                            required
                                         />
                                     </div>
 
