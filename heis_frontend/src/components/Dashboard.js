@@ -189,6 +189,37 @@ const Dashboard = () => {
 
     }, [allAssignments, searchTerm, customers]);
 
+    const dueSoonAssignmentsForTable = useMemo(() => {
+        const now = new Date();
+        const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        return allAssignments
+            .filter(a => {
+                const isCompleted = a.status === 'ferdig' || a.status === 'fakturert';
+                if (isCompleted) return false;
+
+                const deadline = a.deadline_date ? new Date(a.deadline_date) : null;
+                const scheduled = a.scheduled_date ? new Date(a.scheduled_date) : null;
+                
+                const relevantDate = deadline || scheduled;
+
+                if (!relevantDate) return false;
+
+                // Check if the date string is valid before creating a new Date object from it for comparison
+                const relevantDateObj = new Date(relevantDate);
+                if (isNaN(relevantDateObj.getTime())) return false;
+
+
+                return relevantDateObj >= now && relevantDateObj <= oneWeekFromNow;
+            })
+            .sort((a, b) => {
+                const dateA = new Date(a.deadline_date || a.scheduled_date);
+                const dateB = new Date(b.deadline_date || b.scheduled_date);
+                return dateA - dateB;
+            })
+            .slice(0, 5); // Viser de 5 første oppdragene som er nær frist
+    }, [allAssignments]);
+
     // Oppdatert statCards med flatere design og lik størrelse
     const statCards = [
         {
@@ -386,6 +417,64 @@ const Dashboard = () => {
                                                 {getStatusLabel(assignment.status)}
                                                     </Box>
                                                 </TableCell>
+                                                <TableCell>{formatDate(assignment.deadline_date)}</TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Oppdrag Nær Frist (Neste 7 Dager) */}
+            <Card sx={{ mt: 2, borderRadius: 2, boxShadow: 3 }}>
+                <CardHeader
+                    title={<Typography variant="h6" sx={{ fontWeight: 700 }}>Oppdrag Nær Frist (Neste 7 Dager)</Typography>}
+                />
+                <CardContent>
+                    {dueSoonAssignmentsForTable.length === 0 ? (
+                        <Typography color="text.secondary">
+                            Ingen oppdrag med frist innen 7 dager.
+                        </Typography>
+                    ) : (
+                        <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 1, maxHeight: 300 }}>
+                            <Table size="small" stickyHeader>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Tittel</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Kunde</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Tildelt</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Status</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Planlagt</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Frist</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {dueSoonAssignmentsForTable.map((assignment) => {
+                                        const badgeStyle = getStatusBadgeStyle(assignment.status);
+                                        return (
+                                            <TableRow key={assignment.id}>
+                                                <TableCell>{assignment.title}</TableCell>
+                                                <TableCell>{customers[assignment.customer] || '-'}</TableCell>
+                                                <TableCell>{users[assignment.assigned_to] || '-'}</TableCell>
+                                                <TableCell>
+                                                    <Box component="span" sx={{
+                                                        px: 1.5,
+                                                        py: 0.5,
+                                                        borderRadius: 2,
+                                                        bgcolor: badgeStyle.bgcolor,
+                                                        color: badgeStyle.color,
+                                                        fontWeight: 600,
+                                                        fontSize: 13,
+                                                        boxShadow: 1,
+                                                        textTransform: 'capitalize',
+                                                    }}>
+                                                        {getStatusLabel(assignment.status)}
+                                                    </Box>
+                                                </TableCell>
+                                                <TableCell>{formatDate(assignment.scheduled_date)}</TableCell>
                                                 <TableCell>{formatDate(assignment.deadline_date)}</TableCell>
                                             </TableRow>
                                         );
