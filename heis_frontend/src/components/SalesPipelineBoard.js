@@ -3,15 +3,17 @@ import axios from 'axios';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import '../styles/SalesPipelineBoard.css'; // Vi trenger litt CSS for dette
 import AddEditOpportunityModal from './AddEditOpportunityModal'; // Gjenbruker modalen
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
-// Definerer kolonnene og deres rekkefølge
+// Definerer kolonnene og deres rekkefølge med farger
 const pipelineColumns = [
-    { id: 'new', title: 'Ny' },
-    { id: 'contacted', title: 'Kontaktet' },
-    { id: 'proposal', title: 'Tilbud Sendt' },
-    { id: 'negotiation', title: 'Forhandling' },
-    { id: 'won', title: 'Vunnet' },
-    { id: 'lost', title: 'Tapt' },
+    { id: 'new', title: 'Ny', color: '#667eea', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+    { id: 'contacted', title: 'Kontaktet', color: '#f093fb', gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+    { id: 'proposal', title: 'Tilbud Sendt', color: '#4facfe', gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
+    { id: 'negotiation', title: 'Forhandling', color: '#fa709a', gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
+    { id: 'won', title: 'Vunnet', color: '#38a169', gradient: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)' },
+    { id: 'lost', title: 'Tapt', color: '#e53e3e', gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)' },
 ];
 
 // Helper for å få tak i auth token
@@ -291,12 +293,40 @@ const SalesPipelineBoard = () => {
         return 'badge-danger';
     };
 
+    // Excel eksport funksjon
+    const exportToExcel = () => {
+        const exportData = allOpportunities.map(opp => ({
+            'Navn': opp.name,
+            'Kunde': opp.customer_name || '-',
+            'Status': pipelineColumns.find(col => col.id === opp.status)?.title || opp.status,
+            'Estimert verdi': opp.estimated_value || 0,
+            'Beskrivelse': opp.description || '-',
+            'Opprettet': new Date(opp.created_at).toLocaleDateString(),
+            'Dager i pipeline': Math.floor((new Date() - new Date(opp.created_at)) / (1000 * 60 * 60 * 24))
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Salgsmuligheter');
+
+        // Generer Excel fil
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(data, `Salgsmuligheter_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     return (
         <DragDropContext onDragEnd={onDragEnd}>
             <div className="pipeline-board-container">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2>Salgspipeline {isUpdating && <span className="saving-indicator">(Oppdaterer...)</span>}</h2>
                     <div>
+                        <button 
+                            className="btn btn-outline-success me-2"
+                            onClick={exportToExcel}
+                        >
+                            <i className="fas fa-download me-1"></i> Excel
+                        </button>
                         <button 
                             className="btn btn-outline-info me-2"
                             onClick={toggleStats}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -37,9 +39,39 @@ const OrderList = () => {
         return new Date(dateString).toLocaleDateString();
     }
 
+    // Excel eksport funksjon
+    const exportToExcel = () => {
+        const exportData = orders.map(order => ({
+            'Ordre ID': order.id,
+            'Kunde': order.customer_name || '-',
+            'Ordredato': formatDate(order.order_date),
+            'Status': order.status_display,
+            'Tilbudsnummer': order.quote_number || '-',
+            'Totalsum': order.total_amount || 0,
+            'Notater': order.notes || '-'
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Ordrer');
+
+        // Generer Excel fil
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(data, `Ordrer_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     return (
         <div className="container mt-4">
-            <h1>Ordreoversikt</h1>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h1>Ordreoversikt</h1>
+                <button 
+                    className="btn btn-outline-success"
+                    onClick={exportToExcel}
+                >
+                    <i className="fas fa-download me-2"></i>Excel
+                </button>
+            </div>
             {/* TODO: Filter/Sort UI */}
 
             {error && <div className="alert alert-danger">{error}</div>}

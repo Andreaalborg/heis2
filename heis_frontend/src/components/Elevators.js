@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import ElevatorDetailsModal from './ElevatorDetailsModal';
 import AddElevatorModal from './AddElevatorModal';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -79,6 +81,29 @@ const Elevators = () => {
         );
     });
 
+    // Excel eksport funksjon
+    const exportToExcel = () => {
+        const exportData = filteredElevators.map(elevator => ({
+            'Serienummer': elevator.serial_number,
+            'Kunde': elevator.customer_name,
+            'Type': elevator.elevator_type_name || '-',
+            'Produsent': elevator.manufacturer || '-',
+            'Installasjonsdato': elevator.installation_date ? new Date(elevator.installation_date).toLocaleDateString() : '-',
+            'Lokasjon': elevator.location_description || '-',
+            'QR-kode': elevator.qr_code || '-',
+            'Status': elevator.status || 'Aktiv'
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Heiser');
+
+        // Generer Excel fil
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(data, `Heiser_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     // Vis detaljer for en heis
     const handleShowDetails = (elevator) => {
         setSelectedElevator(elevator);
@@ -111,12 +136,20 @@ const Elevators = () => {
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2>Heiser</h2>
-                <button 
-                    className="btn btn-primary"
-                    onClick={handleAddElevator}
-                >
-                    Legg til heis
-                </button>
+                <div>
+                    <button 
+                        className="btn btn-outline-success me-2"
+                        onClick={exportToExcel}
+                    >
+                        <i className="fas fa-download me-2"></i>Excel
+                    </button>
+                    <button 
+                        className="btn btn-primary"
+                        onClick={handleAddElevator}
+                    >
+                        Legg til heis
+                    </button>
+                </div>
             </div>
 
             {/* Søkefelt */}

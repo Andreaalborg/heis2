@@ -32,7 +32,7 @@ router.register(r'project-summary', ProjectSummaryViewSet, basename='project-sum
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
+    # Fjernet api-token-auth herfra siden den er definert i heis_backend/urls.py
     path('assignments/<int:assignment_pk>/checklist/', AssignmentChecklistViewSet.as_view(), name='assignment-checklist-detail'),
     path('quotes/<int:quote_id>/pdf/', QuotePDFView.as_view(), name='quote-pdf'),
 ]

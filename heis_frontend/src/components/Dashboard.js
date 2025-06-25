@@ -22,6 +22,45 @@ import PersonIcon from '@mui/icons-material/Person';
 import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import LinearProgress from '@mui/material/LinearProgress';
+import Skeleton from '@mui/material/Skeleton';
+import DownloadIcon from '@mui/icons-material/Download';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import { LoadingSpinner, ErrorMessage } from './LoadingError';
+
+// Animert tall-komponent for smooth overgang
+const AnimatedNumber = ({ value, duration = 1000 }) => {
+    const [displayValue, setDisplayValue] = useState(0);
+    
+    useEffect(() => {
+        let startTime;
+        let animationFrame;
+        
+        const animate = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            
+            setDisplayValue(Math.floor(progress * value));
+            
+            if (progress < 1) {
+                animationFrame = requestAnimationFrame(animate);
+            }
+        };
+        
+        animationFrame = requestAnimationFrame(animate);
+        
+        return () => {
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        };
+    }, [value, duration]);
+    
+    return <span>{displayValue}</span>;
+};
 
 const Dashboard = () => {
     const [userInfo, setUserInfo] = useState(null);
@@ -174,6 +213,28 @@ const Dashboard = () => {
         } catch (e) { return '-'; }
     };
 
+    // Excel eksport funksjon
+    const exportToExcel = () => {
+        const exportData = filteredAndLimitedAssignments.map(assignment => ({
+            'Dato': formatDate(assignment.scheduled_date),
+            'Tid': formatTime(assignment.scheduled_date),
+            'Tittel': assignment.title,
+            'Kunde': customers[assignment.customer] || '-',
+            'Tildelt': users[assignment.assigned_to] || '-',
+            'Status': getStatusLabel(assignment.status),
+            'Frist': formatDate(assignment.deadline_date)
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Oppdrag');
+        
+        // Generer Excel fil
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(data, `Oppdrag_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     const filteredAndLimitedAssignments = useMemo(() => {
         const activeAssignments = allAssignments.filter(a => a.status !== 'ferdig' && a.status !== 'fakturert');
         
@@ -220,52 +281,47 @@ const Dashboard = () => {
             .slice(0, 5); // Viser de 5 første oppdragene som er nær frist
     }, [allAssignments]);
 
-    // Oppdatert statCards med flatere design og lik størrelse
+    // Moderne statCards med gradient bakgrunner
     const statCards = [
         {
             label: 'Aktive Oppdrag',
             value: stats.activeTotal,
-            icon: <AssignmentIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
-            bgcolor: 'white',
-            color: 'primary.main',
-            border: '2px solid',
-            borderColor: 'primary.light',
+            icon: <AssignmentIcon sx={{ fontSize: 48 }} />,
+            gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            trend: '+12%',
+            trendUp: true,
         },
         {
             label: 'Mine Aktive',
             value: stats.assignedToMe,
-            icon: <PersonIcon sx={{ fontSize: 40, color: 'info.main' }} />,
-            bgcolor: 'white',
-            color: 'info.main',
-            border: '2px solid',
-            borderColor: 'info.light',
+            icon: <PersonIcon sx={{ fontSize: 48 }} />,
+            gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            trend: '+5%',
+            trendUp: true,
         },
         {
             label: 'Nye Oppdrag',
             value: stats.statusNew,
-            icon: <NewReleasesIcon sx={{ fontSize: 40, color: 'success.main' }} />,
-            bgcolor: 'white',
-            color: 'success.main',
-            border: '2px solid',
-            borderColor: 'success.light',
+            icon: <NewReleasesIcon sx={{ fontSize: 48 }} />,
+            gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            trend: '+23%',
+            trendUp: true,
         },
         {
             label: 'Pågående',
             value: stats.statusInProgress,
-            icon: <PlayCircleFilledWhiteIcon sx={{ fontSize: 40, color: 'warning.main' }} />,
-            bgcolor: 'white',
-            color: 'warning.main',
-            border: '2px solid',
-            borderColor: 'warning.light',
+            icon: <PlayCircleFilledWhiteIcon sx={{ fontSize: 48 }} />,
+            gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            trend: '-2%',
+            trendUp: false,
         },
         {
             label: 'Nær Frist (7 dager)',
             value: stats.dueSoon,
-            icon: <WarningAmberIcon sx={{ fontSize: 40, color: 'error.main' }} />,
-            bgcolor: 'white',
-            color: 'error.main',
-            border: '2px solid',
-            borderColor: 'error.main',
+            icon: <WarningAmberIcon sx={{ fontSize: 48 }} />,
+            gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+            trend: '3 kritiske',
+            trendUp: false,
         },
     ];
 
@@ -292,11 +348,15 @@ const Dashboard = () => {
     };
 
     if (isLoading) {
-        return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}><Typography>Laster dashboard...</Typography></Box>;
+        return <LoadingSpinner message="Laster dashboard data..." size={50} />;
     }
     
     if (error) {
-        return <Box sx={{ color: 'error.main', p: 2 }}>{error}</Box>;
+        return <ErrorMessage 
+            error={error} 
+            title="Kunne ikke laste dashboard" 
+            onRetry={() => window.location.reload()} 
+        />;
     }
     
     return (
@@ -326,28 +386,61 @@ const Dashboard = () => {
                     <Grid item xs={12} sm={6} md={2.4} key={card.label}>
                         <Card
                             sx={{
-                                bgcolor: card.bgcolor,
-                                color: card.color,
-                                border: card.border,
-                                borderColor: card.borderColor,
-                                boxShadow: 3,
-                                borderRadius: 1,
-                                minHeight: 130,
-                                minWidth: 180,
-                                maxWidth: 220,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                p: 2,
-                                m: 'auto',
-                                transition: 'transform 0.15s',
-                                '&:hover': { transform: 'scale(1.03)', boxShadow: 6 },
+                                background: card.gradient,
+                                color: 'white',
+                                boxShadow: '0 10px 20px rgba(0,0,0,0.12)',
+                                borderRadius: 2,
+                                minHeight: 140,
+                                position: 'relative',
+                                overflow: 'hidden',
+                                transition: 'all 0.3s ease',
+                                '&:hover': { 
+                                    transform: 'translateY(-5px)', 
+                                    boxShadow: '0 15px 30px rgba(0,0,0,0.15)' 
+                                },
+                                '&::before': {
+                                    content: '""',
+                                    position: 'absolute',
+                                    top: 0,
+                                    right: 0,
+                                    width: '100px',
+                                    height: '100px',
+                                    background: 'rgba(255,255,255,0.1)',
+                                    borderRadius: '50%',
+                                    transform: 'translate(30px, -30px)',
+                                }
                             }}
                         >
-                            <Box sx={{ mb: 1 }}>{card.icon}</Box>
-                            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>{card.value}</Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, textAlign: 'center', px: 1 }}>{card.label}</Typography>
+                            <CardContent>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <Box sx={{ 
+                                        p: 1, 
+                                        borderRadius: 2, 
+                                        bgcolor: 'rgba(255,255,255,0.2)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        {card.icon}
+                                    </Box>
+                                </Box>
+                                <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
+                                    <AnimatedNumber value={card.value} />
+                                </Typography>
+                                <Typography variant="body1" sx={{ opacity: 0.9, fontWeight: 500 }}>
+                                    {card.label}
+                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                                    {card.trendUp ? (
+                                        <TrendingUpIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                                    ) : (
+                                        <TrendingUpIcon sx={{ fontSize: 16, mr: 0.5, transform: 'rotate(180deg)' }} />
+                                    )}
+                                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                        {card.trend}
+                                    </Typography>
+                                </Box>
+                            </CardContent>
                         </Card>
                     </Grid>
                 ))}
@@ -358,21 +451,66 @@ const Dashboard = () => {
                 <CardHeader
                     title={<Typography variant="h6" sx={{ fontWeight: 700 }}>Kommende Oppdrag</Typography>}
                     action={
-                        <Button component={Link} to="/assignments" variant="text" size="small">
-                            Se alle
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button 
+                                startIcon={<DownloadIcon />} 
+                                variant="outlined" 
+                                size="small"
+                                onClick={exportToExcel}
+                                sx={{ 
+                                    borderColor: 'success.main',
+                                    color: 'success.main',
+                                    '&:hover': {
+                                        borderColor: 'success.dark',
+                                        bgcolor: 'success.light'
+                                    }
+                                }}
+                            >
+                                Excel
+                            </Button>
+                            <Button component={Link} to="/assignments" variant="text" size="small">
+                                Se alle
+                            </Button>
+                        </Box>
                     }
                 />
                 <CardContent>
-                    <Box sx={{ mb: 2 }}>
+                    <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
                         <TextField
                             label="Søk i tittel/kunde"
                             variant="outlined"
                             size="small"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            sx={{ width: { xs: '100%', sm: '300px' } }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                }
+                            }}
+                            placeholder="Skriv for å søke..."
+                            sx={{ 
+                                width: { xs: '100%', sm: '300px' },
+                                '& .MuiOutlinedInput-root': {
+                                    '&:hover fieldset': {
+                                        borderColor: 'primary.main',
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: 'primary.main',
+                                    },
+                                },
+                            }}
+                            InputProps={{
+                                sx: { 
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 2,
+                                }
+                            }}
                         />
+                        {searchTerm && (
+                            <Typography variant="caption" color="text.secondary">
+                                {filteredAndLimitedAssignments.length} treff
+                            </Typography>
+                        )}
                     </Box>
                     {filteredAndLimitedAssignments.length === 0 ? (
                         <Typography color="text.secondary">

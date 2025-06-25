@@ -11,6 +11,7 @@
     "@fullcalendar/interaction": "^6.1.15",
     "@fullcalendar/list": "^6.1.15",
     "@fullcalendar/react": "^6.1.15",
+    "@fullcalendar/resource": "^6.1.17",
     "@fullcalendar/resource-daygrid": "^6.1.17",
     "@fullcalendar/resource-timegrid": "^6.1.17",
     "@fullcalendar/resource-timeline": "^6.1.17",
@@ -29,13 +30,16 @@
     "bootstrap": "^5.3.6",
     "bulma": "^1.0.4",
     "dayjs": "^1.11.13",
+    "file-saver": "^2.0.5",
     "react": "^19.1.0",
+    "react-beautiful-dnd": "^13.1.1",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.4.1",
     "react-scripts": "5.0.1",
     "react-select": "^5.10.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",

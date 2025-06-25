@@ -35,6 +35,7 @@ import Sidebar from './components/Sidebar';
 
 // Stilark
 import './App.css';
+import './styles/Responsive.css';
 
 // Font Awesome ikoner
 import '@fortawesome/fontawesome-free/css/all.min.css';

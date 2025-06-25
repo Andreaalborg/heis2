@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('heis_api.urls')),
     path('api-token-auth/', token_views.obtain_auth_token, name='api_token_auth'),
+    path('api-token-auth', token_views.obtain_auth_token),  # Uten trailing slash også
 ]
 
 # Legg til media og static URL-er i utviklingsmodus

@@ -1,0 +1,449 @@
+/* Global Responsive Styles for HeisAdmin */
+
+/* ========================================
+   Variabler og Breakpoints
+   ======================================== */
+:root {
+    --mobile-breakpoint: 480px;
+    --tablet-breakpoint: 768px;
+    --desktop-breakpoint: 1024px;
+    --wide-breakpoint: 1440px;
+}
+
+/* ========================================
+   Mobile First Base Styles
+   ======================================== */
+
+/* Container justering for mobil */
+.container,
+.container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* ========================================
+   Responsive Tabeller
+   ======================================== */
+@media (max-width: 768px) {
+    /* Gjør alle tabeller responsive på mobil */
+    .table-responsive {
+        border: 0;
+    }
+    
+    table.table {
+        border: 0;
+    }
+    
+    table.table thead {
+        display: none;
+    }
+    
+    table.table tr {
+        display: block;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    table.table td {
+        display: block;
+        text-align: right;
+        font-size: 14px;
+        border: none;
+        padding: 8px 10px;
+        position: relative;
+        padding-left: 45%;
+    }
+    
+    table.table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        width: 40%;
+        text-align: left;
+        font-weight: bold;
+        color: #666;
+    }
+    
+    table.table td:last-child {
+        border-bottom: 0;
+    }
+}
+
+/* ========================================
+   Responsive Knapper
+   ======================================== */
+@media (max-width: 480px) {
+    /* Stack knapper vertikalt på mobil */
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        border-radius: 4px !important;
+        margin-bottom: 5px;
+        width: 100%;
+    }
+    
+    /* Gjør individuelle knapper fullbredde */
+    .btn-block-mobile {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    /* Juster knapp-tekst størrelse */
+    .btn {
+        font-size: 14px;
+        padding: 10px 16px;
+    }
+    
+    .btn-sm {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+}
+
+/* ========================================
+   Responsive Forms
+   ======================================== */
+@media (max-width: 768px) {
+    /* Stack form elementer vertikalt */
+    .row.form-row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    .row.form-row > [class*="col-"] {
+        padding-left: 0;
+        padding-right: 0;
+        margin-bottom: 15px;
+    }
+    
+    /* Fullbredde input felt */
+    .form-control,
+    .form-select {
+        font-size: 16px; /* Forhindrer zoom på iOS */
+    }
+    
+    /* Juster labels */
+    .form-label {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+}
+
+/* ========================================
+   Responsive Navigation
+   ======================================== */
+@media (max-width: 768px) {
+    /* Navbar justeringer */
+    .navbar {
+        padding: 10px 15px;
+    }
+    
+    .navbar-brand {
+        font-size: 18px;
+    }
+    
+    /* Sidebar blir fullskjerm overlay på mobil */
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        width: 80%;
+        max-width: 300px;
+        height: 100vh;
+        z-index: 1050;
+        transition: left 0.3s ease-in-out;
+        background: white;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+    
+    .sidebar.active {
+        left: 0;
+    }
+    
+    /* Overlay for sidebar */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1049;
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+    }
+}
+
+/* ========================================
+   Responsive Cards
+   ======================================== */
+@media (max-width: 768px) {
+    /* Juster card spacing */
+    .card {
+        margin-bottom: 15px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    /* Stack card actions vertikalt */
+    .card-footer {
+        padding: 10px 15px;
+    }
+    
+    .card-footer .btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    .card-footer .btn:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* ========================================
+   Responsive Grid
+   ======================================== */
+@media (max-width: 768px) {
+    /* Override Bootstrap grid på mobil */
+    .row {
+        margin-left: -10px;
+        margin-right: -10px;
+    }
+    
+    .row > [class*="col-"] {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* Force single column på små skjermer */
+    .col-sm-6,
+    .col-md-4,
+    .col-lg-3 {
+        width: 100%;
+    }
+}
+
+/* ========================================
+   Responsive Modals
+   ======================================== */
+@media (max-width: 768px) {
+    /* Fullskjerm modals på mobil */
+    .modal-dialog {
+        margin: 0;
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+    }
+    
+    .modal-content {
+        height: 100%;
+        border: 0;
+        border-radius: 0;
+    }
+    
+    .modal-body {
+        overflow-y: auto;
+        max-height: calc(100vh - 120px);
+    }
+}
+
+/* ========================================
+   Responsive Typography
+   ======================================== */
+@media (max-width: 768px) {
+    h1 { font-size: 24px; }
+    h2 { font-size: 20px; }
+    h3 { font-size: 18px; }
+    h4 { font-size: 16px; }
+    h5 { font-size: 14px; }
+    h6 { font-size: 12px; }
+    
+    .display-1 { font-size: 48px; }
+    .display-2 { font-size: 40px; }
+    .display-3 { font-size: 32px; }
+    .display-4 { font-size: 24px; }
+}
+
+/* ========================================
+   Responsive Utilities
+   ======================================== */
+@media (max-width: 768px) {
+    /* Hide elements on mobile */
+    .hide-mobile {
+        display: none !important;
+    }
+    
+    /* Show elements only on mobile */
+    .show-mobile {
+        display: block !important;
+    }
+    
+    /* Juster spacing */
+    .mt-mobile-3 { margin-top: 1rem !important; }
+    .mb-mobile-3 { margin-bottom: 1rem !important; }
+    .p-mobile-2 { padding: 0.5rem !important; }
+    
+    /* Text alignment */
+    .text-mobile-center { text-align: center !important; }
+    .text-mobile-left { text-align: left !important; }
+}
+
+/* ========================================
+   Touch-vennlige elementer
+   ======================================== */
+@media (hover: none) and (pointer: coarse) {
+    /* Større touch targets */
+    button,
+    .btn,
+    a.btn,
+    input[type="submit"],
+    input[type="button"] {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Fjern hover effekter på touch devices */
+    .btn:hover,
+    .card:hover,
+    .list-group-item:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* ========================================
+   Landscape Mobil Justeringer
+   ======================================== */
+@media (max-width: 768px) and (orientation: landscape) {
+    /* Reduser høyde på elementer i landscape */
+    .navbar {
+        padding: 5px 15px;
+    }
+    
+    .card-body {
+        padding: 10px;
+    }
+    
+    .modal-body {
+        max-height: calc(100vh - 100px);
+    }
+}
+
+/* ========================================
+   Print Styles
+   ======================================== */
+@media print {
+    /* Skjul navigasjon og knapper ved print */
+    .navbar,
+    .sidebar,
+    .btn,
+    .btn-group,
+    .hide-print {
+        display: none !important;
+    }
+    
+    /* Fjern bakgrunnsfarger */
+    body {
+        background: white;
+    }
+    
+    .card {
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+    
+    /* Vis alle rader i tabeller */
+    table.table tr {
+        page-break-inside: avoid;
+    }
+}
+
+/* ========================================
+   Spesifikke Komponent Justeringer
+   ======================================== */
+
+/* Dashboard Responsive */
+@media (max-width: 768px) {
+    .stat-cards-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-card .display-4 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-cards-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Sales Pipeline Responsive */
+@media (max-width: 768px) {
+    .pipeline-board {
+        flex-direction: column;
+    }
+    
+    .pipeline-column {
+        min-width: 100%;
+        margin-bottom: 20px;
+    }
+}
+
+/* Assignment Calendar Responsive */
+@media (max-width: 768px) {
+    .fc-toolbar {
+        flex-direction: column;
+    }
+    
+    .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+        margin: 5px 0;
+    }
+    
+    .fc-button-group .fc-button {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+}
+
+/* ========================================
+   Performance Optimizations
+   ======================================== */
+@media (max-width: 768px) {
+    /* Deaktiver animasjoner på mobil for bedre ytelse */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+    }
+    
+    /* Bruk hardware akselerasjon kun der nødvendig */
+    .modal,
+    .sidebar {
+        will-change: transform;
+    }
+}
