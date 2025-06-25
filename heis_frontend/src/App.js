@@ -16,19 +16,19 @@ import Users from './components/Users';
 import Customers from './components/Customers';
 import Assignments from './components/Assignments';
 import Elevators from './components/Elevators';
-import AssignmentCalendar from './components/AssignmentCalendar';
+import AssignmentCalendarNew from './components/AssignmentCalendarNew';
 import SalesOpportunityList from './components/SalesOpportunityList';
 import QuoteDetailView from './components/QuoteDetailView';
 import ElevatorTypeList from './components/ElevatorTypeList';
 import QuoteList from './components/QuoteList';
 import OrderList from './components/OrderList';
 import OrderDetailView from './components/OrderDetailView';
-import AbsenceManagement from './components/AbsenceManagement';
+import AbsenceManagementNew from './components/AbsenceManagementNew';
 import TechnicianAvailabilityView from './components/TechnicianAvailabilityView';
 import SalesPipelineBoard from './components/SalesPipelineBoard';
 import SalesFollowUpPlanner from './components/SalesFollowUpPlanner';
-import SalesAutomation from './components/SalesAutomation';
-import SalesWorkflow from './components/SalesWorkflow';
+import SalesAutomationNew from './components/SalesAutomationNew';
+import SalesWorkflowNew from './components/SalesWorkflowNew';
 import Camera from './components/Camera';
 import { AuthProvider, useAuth } from './components/Auth'; // Importer AuthProvider og useAuth
 import Sidebar from './components/Sidebar';
@@ -191,7 +191,7 @@ const AppContent = () => {
                             {/* Admin Rute for Fravær */}
                             <Route path="/absences" element={
                                 <ProtectedRoute allowedRoles={['admin']}>
-                                    <AbsenceManagement />
+                                    <AbsenceManagementNew />
                                 </ProtectedRoute>
                             } />
                             
@@ -209,7 +209,7 @@ const AppContent = () => {
                             } />
                             <Route path="/calendar" element={
                                 <ProtectedRoute allowedRoles={['admin', 'tekniker', 'selger']}>
-                                    <AssignmentCalendar />
+                                    <AssignmentCalendarNew />
                                 </ProtectedRoute>
                             } />
                             
@@ -254,14 +254,14 @@ const AppContent = () => {
                             {/* Kunde til Oppdrag arbeidsflyt (Admin, Selger) */}
                             <Route path="/sales-workflow" element={
                                 <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                    <SalesWorkflow />
+                                    <SalesWorkflowNew />
                                 </ProtectedRoute>
                             } />
                             
                             {/* Salgsautomatisering (Admin, Selger) */}
                             <Route path="/sales-automation" element={
                                 <ProtectedRoute allowedRoles={['admin', 'selger']}>
-                                    <SalesAutomation />
+                                    <SalesAutomationNew />
                                 </ProtectedRoute>
                             } />
                             

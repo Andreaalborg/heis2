@@ -155,5 +155,166 @@ Alle endringer er gjort med git, så du kan:
   ```
 - **Resultat**: Frontend kan nå kjøre på port 3001 eller 3002
 
+### 9. Forbedringer på feature/improved-workflow branch ✅ FERDIG
+
+#### 9.1 Fikset Salgspipeline Bredde ✅ FERDIG
+- **Problem**: Pipeline utvidet seg for langt til høyre
+- **Fil endret**: `heis_frontend/src/styles/SalesPipelineBoard.css`
+- **Løsninger implementert**:
+  - ✅ Lagt til `max-width: 100%` og `overflow: hidden` på container
+  - ✅ Endret kolonner fra `flex: 1` til `flex: 0 0 280px` for fast bredde
+  - ✅ Satt maks-bredde på kolonner til 350px
+  - ✅ Forbedret responsive breakpoints (1400px, 992px, 768px)
+  - ✅ Kolonner skalerer nå fra 280px → 260px → 240px → 220px
+- **Resultat**: Pipeline holder seg nå innenfor vinduet med horisontal scrolling
+
+#### 9.2 Forenklet Menystruktur med Gruppering ✅ FERDIG
+- **Fil endret**: `heis_frontend/src/components/Sidebar.js`
+- **Endringer implementert**:
+  - ✅ Refaktorert fra flat menystruktur til gruppert struktur
+  - ✅ Nye grupper:
+    - **Salg & Kunder**: Samler alle salgsrelaterte funksjoner
+    - **Service & Vedlikehold**: For tekniker-relaterte oppgaver
+    - **Planlegging**: For tilgjengelighet og oppfølging
+    - **Administrasjon**: Admin-spesifikke funksjoner
+    - **Data**: For selgere (kun heiser)
+    - **Verktøy**: Kamera-funksjon
+  - ✅ Lagt til ListSubheader for visuell gruppering
+  - ✅ Forbedret styling med uppercase headers og bedre spacing
+  - ✅ Bevart alle eksisterende menypunkter
+  - ✅ Hover-effekter og selected states fungerer som før
+- **Resultat**: Mer oversiktlig meny som er lettere å navigere
+
+#### 9.3 Notater om Hover-problem
+- **Problem**: Bruker rapporterte at knappetekst forsvinner ved hover
+- **Undersøkelse**: Kunne ikke finne transparent color i hover states
+- **Status**: Problemet ser ikke ut til å være i vår kode
+- **Mulige årsaker**: Browser-spesifikt problem eller ekstern CSS
+
+### 10. Store UI/UX forbedringer på feature/improved-workflow branch ✅ FERDIG
+
+#### 10.1 Fikset Sidebar Scrolling ✅ FERDIG
+- **Problem**: Scrolling i sidebar var uønsket
+- **Fil endret**: `heis_frontend/src/components/Sidebar.js`
+- **Løsninger**:
+  - ✅ Reduserte padding og margins overalt
+  - ✅ Mindre fontstørrelser (0.875rem for menyelementer)
+  - ✅ Kompakt spacing mellom grupper
+  - ✅ Wrapper med overflow kontroll
+- **Resultat**: All menyinnhold passer nå uten scrolling
+
+#### 10.2 Forbedret Sales Pipeline Layout ✅ FERDIG
+- **Problem**: Pipeline gikk utenfor skjermen og hadde ingen responsiv grid
+- **Fil endret**: `heis_frontend/src/styles/SalesPipelineBoard.css`
+- **Løsninger**:
+  - ✅ Byttet fra flexbox til CSS Grid
+  - ✅ `grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))`
+  - ✅ Fast grid på store skjermer (6 kolonner på >1600px)
+  - ✅ Automatisk tilpasning på mindre skjermer
+  - ✅ Mobil: tilbake til horisontal scrolling
+- **Resultat**: Pipeline holder seg alltid innenfor viewport på desktop
+
+#### 10.3 Fikset toISOString Error ✅ FERDIG
+- **Problem**: `start.toISOString is not a function` på /availability
+- **Fil endret**: `heis_frontend/src/components/TechnicianAvailabilityView.js`
+- **Årsak**: start og end var allerede formaterte strenger, ikke Date objekter
+- **Løsning**: Fjernet unødvendig `.toISOString()` kall
+- **Resultat**: Availability-siden fungerer nå uten feil
+
+#### 10.4 Ny Sales Workflow med Material-UI ✅ FERDIG
+- **Ny fil**: `heis_frontend/src/components/SalesWorkflowNew.js`
+- **Forbedringer**:
+  - ✅ Moderne Material-UI design med Stepper-komponent
+  - ✅ Visuell fremgang med ikoner og farger
+  - ✅ Service-kort med emojis og priser
+  - ✅ Kundeliste med chips for kontaktinfo
+  - ✅ Real-time tekniker-tilgjengelighet
+  - ✅ Oppsummering før fullføring
+  - ✅ Bedre validering på hvert steg
+- **Resultat**: Mye mer intuitiv og visuelt tiltalende arbeidsflyt
+
+#### 10.5 Ny Sales Automation ✅ FERDIG
+- **Ny fil**: `heis_frontend/src/components/SalesAutomationNew.js`
+- **Helt ny design**:
+  - ✅ Dashboard med KPI-kort (aktive muligheter, total verdi, konvertering, etc)
+  - ✅ Automatiske påminnelser basert på regler:
+    - Nye muligheter ubehandlet > 3 dager
+    - Kontaktet kunde uten tilbud > 7 dager
+    - Tilbud uten svar > 14 dager
+    - Høyverdi-muligheter (>100k) prioriteres
+  - ✅ Tab-basert navigasjon (Dashboard, Muligheter, Regler)
+  - ✅ Handlingsknapper direkte i påminnelser
+  - ✅ Badge på dashboard-tab viser antall påminnelser
+- **Fjernet**: Forvirrende "mal"-system som ikke hang sammen
+- **Resultat**: Faktisk nyttig automatisering integrert med resten av systemet
+
+#### 10.6 App.js Oppdateringer ✅ FERDIG
+- Byttet fra gamle til nye komponenter:
+  - `SalesWorkflow` → `SalesWorkflowNew`
+  - `SalesAutomation` → `SalesAutomationNew`
+
+### 11. Ytterligere UI/UX forbedringer ✅ FERDIG
+
+#### 11.1 Sales Workflow Forbedringer ✅ FERDIG
+- **Fil endret**: `heis_frontend/src/components/SalesWorkflowNew.js`
+- **Forbedringer**:
+  - ✅ Tydelig markering av valgt kunde med:
+    - Blå bakgrunn og border
+    - Checkmark-ikon ved valgt kunde
+    - Bold tekst på valgt kunde
+  - ✅ Lagt til valg av eksisterende heis som mal ved installasjon
+  - ✅ To separate dropdown-menyer: heistype eller eksisterende heis
+- **Resultat**: Mye tydeligere brukergrensesnitt
+
+#### 11.2 Sales Automation Layout Fix ✅ FERDIG
+- **Fil endret**: `heis_frontend/src/components/SalesAutomationNew.js`
+- **Problem**: Handlingsknapper overlappet med tekst
+- **Løsning**:
+  - ✅ Refaktorert ListItem layout med flexbox
+  - ✅ Responsive design: vertikal layout på mobil
+  - ✅ Bedre spacing og padding
+  - ✅ Knapper får full bredde på mobil
+- **Resultat**: Ingen overlapping, ren layout
+
+#### 11.3 Dashboard Forbedringer ✅ FERDIG
+- **Fil endret**: `heis_frontend/src/components/Dashboard.js`
+- **Forbedringer**:
+  - ✅ Definerte nye statusfarger:
+    - Ny: Blå (#2196F3)
+    - Tildelt: Oransje (#FF9800)
+    - Påbegynt: Lilla (#9C27B0)
+    - Ferdig: Grønn (#4CAF50)
+    - Fakturert: Grå (#607D8B)
+  - ✅ Lagt til fargeprikker (8x8px) foran oppdragstitler
+  - ✅ Fjernet "in_progress" med understrek - bruker norske labels
+  - ✅ Konsistent fargebruk gjennom hele appen
+- **Resultat**: Visuelt tydeligere statusindikering
+
+#### 11.4 Ny Fraværsadministrasjon ✅ FERDIG
+- **Ny fil**: `heis_frontend/src/components/AbsenceManagementNew.js`
+- **Helt ny design med fraværskoder**:
+  - ✅ 10 forskjellige fraværstyper med ikoner og farger:
+    - Sykdom (rød), Ferie (grønn), Permisjon (oransje)
+    - Kurs/Opplæring (blå), Legebesøk (lilla)
+    - Omsorgspermisjon (cyan), Hjemmekontor (brun)
+    - Tjenestereise (grå), Rettssak/Jury (rosa), Annet (grå)
+  - ✅ Oversiktsdashboard med:
+    - Aktivt fravær nå
+    - Total fraværsdager i år
+    - Sykefravær og feriedager
+    - Kort-visning av aktive fravær
+  - ✅ Detaljert tabell med alle registreringer
+  - ✅ Modal for registrering med:
+    - Valg av ansatt og fraværstype
+    - Fra/til dato
+    - Årsak/kommentar
+    - Legeattest-checkbox for sykdom
+  - ✅ Tab-navigasjon mellom oversikt og detaljer
+- **Resultat**: Profesjonell fraværshåndtering med god oversikt
+
+#### 11.5 App.js Oppdateringer ✅ FERDIG
+- Byttet til nye komponenter:
+  - `AbsenceManagement` → `AbsenceManagementNew`
+
 ---
 Oppdateres fortløpende når nye endringer gjøres.

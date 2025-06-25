@@ -53,9 +53,9 @@ const TechnicianAvailabilityView = () => {
         const token = localStorage.getItem('token');
         const config = { headers: { 'Authorization': `Token ${token}` } };
         
-        // Sjekk om start og end er definert før du bruker dem
-        const startDate = start ? start.toISOString().split('T')[0] : null;
-        const endDate = end ? end.toISOString().split('T')[0] : null;
+        // start og end er allerede formaterte strenger (YYYY-MM-DD)
+        const startDate = start;
+        const endDate = end;
 
         // Bygg URLer med dato-filtrering hvis start og end finnes
         const assignmentsUrl = startDate && endDate ? `${API_BASE_URL}/api/assignments/?start_date=${startDate}&end_date=${endDate}` : `${API_BASE_URL}/api/assignments/`;

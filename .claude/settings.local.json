@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(rm:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ]
   },
   "enableAllProjectMcpServers": false

@@ -80,11 +80,11 @@ const Dashboard = () => {
     });
     
     const statusChoices = [
-        { value: 'ny', label: 'Ny' },
-        { value: 'tildelt', label: 'Tildelt' },
-        { value: 'påbegynt', label: 'Påbegynt' },
-        { value: 'ferdig', label: 'Ferdig' },
-        { value: 'fakturert', label: 'Fakturert' },
+        { value: 'ny', label: 'Ny', color: '#2196F3', bgcolor: '#E3F2FD' },
+        { value: 'tildelt', label: 'Tildelt', color: '#FF9800', bgcolor: '#FFF3E0' },
+        { value: 'påbegynt', label: 'Påbegynt', color: '#9C27B0', bgcolor: '#F3E5F5' },
+        { value: 'ferdig', label: 'Ferdig', color: '#4CAF50', bgcolor: '#E8F5E9' },
+        { value: 'fakturert', label: 'Fakturert', color: '#607D8B', bgcolor: '#ECEFF1' }
     ];
 
     const fetchDashboardData = async () => {
@@ -191,7 +191,22 @@ const Dashboard = () => {
         }
     };
 
-    const getStatusLabel = (value) => statusChoices.find(s => s.value === value)?.label || value;
+    const getStatusLabel = (value) => {
+        // Først sjekk om det er en norsk status
+        const norskStatus = statusChoices.find(s => s.value === value);
+        if (norskStatus) return norskStatus.label;
+        
+        // Map engelske statuser til norske
+        const statusMap = {
+            'in_progress': 'Påbegynt',
+            'completed': 'Ferdig',
+            'invoiced': 'Fakturert',
+            'pending': 'Ny',
+            'assigned': 'Tildelt'
+        };
+        
+        return statusMap[value] || value;
+    };
 
     const formatDate = (dateString) => {
         if (!dateString) return '-';
@@ -327,24 +342,23 @@ const Dashboard = () => {
 
     // Funksjon for å bestemme farge på status-badge
     const getStatusBadgeStyle = (status) => {
-        switch (status) {
-            case 'ny':
-                return { bgcolor: 'info.light', color: 'info.dark' };
-            case 'tildelt':
-                return { bgcolor: 'secondary.light', color: 'secondary.dark' };
-            case 'påbegynt':
-            case 'in_progress':
-                return { bgcolor: 'warning.light', color: 'warning.dark' };
-            case 'ferdig':
-            case 'completed':
-                return { bgcolor: 'success.light', color: 'success.dark' };
-            case 'fakturert':
-                return { bgcolor: 'success.main', color: 'white' };
-            case 'pending':
-                return { bgcolor: 'grey.300', color: 'grey.800' };
-            default:
-                return { bgcolor: 'grey.200', color: 'text.primary' };
+        const statusConfig = statusChoices.find(s => s.value === status);
+        if (statusConfig) {
+            return { bgcolor: statusConfig.bgcolor, color: statusConfig.color };
         }
+        // Fallback for English status values
+        const englishMap = {
+            'in_progress': 'påbegynt',
+            'completed': 'ferdig',
+            'invoiced': 'fakturert',
+            'pending': 'ny'
+        };
+        const mappedStatus = englishMap[status];
+        if (mappedStatus) {
+            const mapped = statusChoices.find(s => s.value === mappedStatus);
+            if (mapped) return { bgcolor: mapped.bgcolor, color: mapped.color };
+        }
+        return { bgcolor: '#f5f5f5', color: '#616161' };
     };
 
     if (isLoading) {
@@ -533,11 +547,41 @@ const Dashboard = () => {
                                 <TableBody>
                                     {filteredAndLimitedAssignments.map((assignment) => {
                                         const badgeStyle = getStatusBadgeStyle(assignment.status);
+                                        // Få statusConfig basert på enten norsk eller engelsk status
+                                        let statusConfig = statusChoices.find(s => s.value === assignment.status);
+                                        if (!statusConfig) {
+                                            // Prøv å mappe engelsk til norsk
+                                            const statusMap = {
+                                                'in_progress': 'påbegynt',
+                                                'completed': 'ferdig',
+                                                'invoiced': 'fakturert',
+                                                'pending': 'ny',
+                                                'assigned': 'tildelt'
+                                            };
+                                            const mappedStatus = statusMap[assignment.status];
+                                            if (mappedStatus) {
+                                                statusConfig = statusChoices.find(s => s.value === mappedStatus);
+                                            }
+                                        }
+                                        statusConfig = statusConfig || { color: '#616161', bgcolor: '#f5f5f5' };
                                         return (
                                             <TableRow key={assignment.id}>
                                                 <TableCell>{formatDate(assignment.scheduled_date)}</TableCell>
                                                 <TableCell>{formatTime(assignment.scheduled_date)}</TableCell>
-                                                <TableCell>{assignment.title}</TableCell>
+                                                <TableCell>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Box 
+                                                            sx={{ 
+                                                                width: 8, 
+                                                                height: 8, 
+                                                                borderRadius: '50%', 
+                                                                bgcolor: statusConfig.color || '#616161',
+                                                                flexShrink: 0
+                                                            }} 
+                                                        />
+                                                        {assignment.title}
+                                                    </Box>
+                                                </TableCell>
                                                 <TableCell>{customers[assignment.customer] || '-'}</TableCell>
                                                 <TableCell>{users[assignment.assigned_to] || '-'}</TableCell>
                                                 <TableCell>
@@ -592,9 +636,39 @@ const Dashboard = () => {
                                 <TableBody>
                                     {dueSoonAssignmentsForTable.map((assignment) => {
                                         const badgeStyle = getStatusBadgeStyle(assignment.status);
+                                        // Få statusConfig basert på enten norsk eller engelsk status
+                                        let statusConfig = statusChoices.find(s => s.value === assignment.status);
+                                        if (!statusConfig) {
+                                            // Prøv å mappe engelsk til norsk
+                                            const statusMap = {
+                                                'in_progress': 'påbegynt',
+                                                'completed': 'ferdig',
+                                                'invoiced': 'fakturert',
+                                                'pending': 'ny',
+                                                'assigned': 'tildelt'
+                                            };
+                                            const mappedStatus = statusMap[assignment.status];
+                                            if (mappedStatus) {
+                                                statusConfig = statusChoices.find(s => s.value === mappedStatus);
+                                            }
+                                        }
+                                        statusConfig = statusConfig || { color: '#616161', bgcolor: '#f5f5f5' };
                                         return (
                                             <TableRow key={assignment.id}>
-                                                <TableCell>{assignment.title}</TableCell>
+                                                <TableCell>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Box 
+                                                            sx={{ 
+                                                                width: 8, 
+                                                                height: 8, 
+                                                                borderRadius: '50%', 
+                                                                bgcolor: statusConfig.color || '#616161',
+                                                                flexShrink: 0
+                                                            }} 
+                                                        />
+                                                        {assignment.title}
+                                                    </Box>
+                                                </TableCell>
                                                 <TableCell>{customers[assignment.customer] || '-'}</TableCell>
                                                 <TableCell>{users[assignment.assigned_to] || '-'}</TableCell>
                                                 <TableCell>
